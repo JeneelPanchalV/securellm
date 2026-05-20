@@ -1,0 +1,14 @@
+# Use the textgen conda env — all packages below are already installed.
+# To install from scratch in a new env:
+#
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+#   pip install -r requirements.txt
+
+fastapi>=0.110.0
+uvicorn>=0.29.0
+pydantic>=2.0.0
+transformers>=4.40.0
+peft>=0.10.0
+bitsandbytes>=0.43.0
+accelerate>=0.29.0
+requests>=2.31.0

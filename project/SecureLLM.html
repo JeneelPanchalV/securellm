@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SecureLLM — Threat Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{height:100%;overflow:hidden}
+body{font-family:'Inter',sans-serif;background:#0A0E1A;color:#E8EDF5;min-width:900px}
+
+/* Scrollbars */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.09);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15)}
+.sidebar-scroll::-webkit-scrollbar{width:2px}
+.sidebar-scroll::-webkit-scrollbar-thumb{background:rgba(0,212,255,0.2)}
+
+/* Animated gradient border */
+@keyframes gradientSpin{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.input-border{padding:1px;border-radius:13px;background:rgba(30,38,64,0.9);transition:background 0.3s}
+.input-border.on{
+  background:linear-gradient(90deg,#00D4FF,#7B2FFF,#FF4444,#7B2FFF,#00D4FF);
+  background-size:300% 300%;
+  animation:gradientSpin 4s linear infinite
+}
+
+/* Pulsing status dot */
+@keyframes pulseDot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.82)}}
+.pulse-dot{animation:pulseDot 2.2s ease-in-out infinite}
+
+/* Shield glow */
+@keyframes shieldGlow{0%,100%{box-shadow:0 0 22px rgba(0,212,255,.1),0 0 44px rgba(0,212,255,.04)}50%{box-shadow:0 0 44px rgba(0,212,255,.22),0 0 88px rgba(0,212,255,.08)}}
+.shield-glow{animation:shieldGlow 3s ease-in-out infinite}
+
+/* Message slide-in */
+@keyframes msgIn{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+.msg-in{animation:msgIn 0.24s ease forwards}
+
+/* Typing dots */
+@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.35}40%{transform:translateY(-5px);opacity:1}}
+.dot{animation:bounce 1.4s ease-in-out infinite}
+.dot:nth-child(2){animation-delay:.2s}
+.dot:nth-child(3){animation-delay:.4s}
+
+/* Severity badge pulse-in */
+@keyframes badgePop{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.06)}100%{transform:scale(1);opacity:1}}
+.severity-badge{animation:badgePop .32s ease forwards}
+
+/* Error banner */
+@keyframes slideDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+.err-banner{animation:slideDown .22s ease forwards}
+
+/* Suggestion chip hover */
+.chip:hover{background:rgba(0,212,255,.07)!important;border-color:rgba(0,212,255,.2)!important;color:#C8D3E0!important}
+
+/* Range input */
+.slider{-webkit-appearance:none;height:2px;background:rgba(255,255,255,.08);border-radius:1px;outline:none;cursor:pointer}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:#00D4FF;cursor:pointer;box-shadow:0 0 6px rgba(0,212,255,.4)}
+
+/* Chat area subtle grid */
+.chat-bg{
+  background-image:linear-gradient(rgba(0,212,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.018) 1px,transparent 1px);
+  background-size:44px 44px
+}
+
+/* Select option */
+select option{background:#111827;color:#E8EDF5}
+textarea::placeholder{color:#2D3748}
+textarea{caret-color:#00D4FF}
+
+/* ══ Visual Effects ══ */
+/* RGB-split glitch on logo */
+@keyframes glitch{0%,84%,100%{text-shadow:none;transform:skewX(0) translateX(0)}85%{text-shadow:-2px 0 #FF4444,2px 1px rgba(0,212,255,.9);transform:skewX(-1.5deg) translateX(-1px)}86.5%{text-shadow:2px 0 #7B2FFF,-1px -1px rgba(0,212,255,.8);transform:skewX(1.2deg) translateX(1px)}88%{text-shadow:-1px 0 #FF4444;transform:skewX(0)}89%{text-shadow:none;transform:skewX(0)}}
+.glitch{animation:glitch 9s linear infinite}
+/* Cyan scan line sweeping AI message on entry */
+@keyframes scanLine{0%{top:0;opacity:.95}100%{top:100%;opacity:0}}
+.scan-line{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,212,255,.9) 20%,rgba(0,212,255,.9) 80%,transparent);animation:scanLine .72s ease forwards;pointer-events:none;z-index:10}
+/* Radar ping rings around status dot */
+@keyframes radarPing{0%{transform:scale(1);opacity:.7}100%{transform:scale(4.8);opacity:0}}
+.radar-ping{position:absolute;inset:0;border-radius:50%;border:1px solid #4ADE80;animation:radarPing 2.5s ease-out infinite}
+.radar-ping2{position:absolute;inset:0;border-radius:50%;border:1px solid #4ADE80;animation:radarPing 2.5s ease-out infinite 1.25s}
+/* CRITICAL badge neon pulse */
+@keyframes critGlow{0%,100%{box-shadow:0 0 4px rgba(255,68,68,.45)}50%{box-shadow:0 0 13px rgba(255,68,68,.95),0 0 26px rgba(255,68,68,.3)}}
+.sev-critical{animation:critGlow 1.8s ease-in-out infinite!important;border-color:rgba(255,68,68,.65)!important}
+/* Floating hex particles */
+@keyframes hexFloat{0%,100%{transform:translateY(0) rotate(0deg);opacity:.12}50%{transform:translateY(-22px) rotate(180deg);opacity:.04}}
+.hex-p{position:absolute;animation:hexFloat var(--d,5s) ease-in-out infinite;animation-delay:var(--dl,0s);pointer-events:none}
+/* CVE panel left-border trace */
+@keyframes cveTrace{0%{top:-6%;opacity:0}10%,90%{opacity:1}100%{top:106%;opacity:0}}
+.cve-trace{position:absolute;left:-1px;width:2px;height:28px;background:linear-gradient(180deg,transparent,#00D4FF,transparent);animation:cveTrace var(--d,3.2s) ease-in-out infinite;animation-delay:var(--dl,0s);border-radius:2px;pointer-events:none;z-index:5}
+@keyframes cursorBlink{0%,100%{opacity:1}50%{opacity:0}}.stream-cursor{animation:cursorBlink 1s step-end infinite;color:#00D4FF}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="securellm-utils.jsx"></script>
+<script type="text/babel" src="securellm-sidebar.jsx"></script>
+<script type="text/babel" src="securellm-cve-panel.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentColor": "#00D4FF",
+  "rainOpacity": 0.03,
+  "compact": false,
+  "showRain": true
+}/*EDITMODE-END*/;
+
+/* ── Matrix rain ── */
+function MatrixRain({ opacity = 0.03 }) {
+  const canvasRef = useRef(null);
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let w = canvas.offsetWidth || 600, h = canvas.offsetHeight || 400;
+    canvas.width = w; canvas.height = h;
+    const fs = 12, chars = '0123456789ABCDEF:CVE-PORT//';
+    let cols = Math.floor(w / fs);
+    let drops = Array.from({length:cols}, () => -Math.floor(Math.random()*40));
+    let raf, tick = 0;
+    const draw = () => {
+      tick++;
+      if (tick % 3 === 0) {
+        ctx.fillStyle = 'rgba(10,14,26,0.07)'; ctx.fillRect(0,0,w,h);
+        ctx.font = `${fs}px 'JetBrains Mono',monospace`;
+        for (let i=0;i<drops.length;i++) {
+          if (drops[i]*fs<0){drops[i]++;continue;}
+          const b=Math.random();
+          ctx.fillStyle=b>0.94?'rgba(200,230,255,.7)':`rgba(0,212,255,${(b*.28+.07).toFixed(2)})`;
+          ctx.fillText(chars[Math.floor(Math.random()*chars.length)],i*fs,drops[i]*fs);
+          if(drops[i]*fs>h&&Math.random()>0.975)drops[i]=-Math.floor(Math.random()*25);
+          drops[i]++;
+        }
+      }
+      raf=requestAnimationFrame(draw);
+    };
+    raf=requestAnimationFrame(draw);
+    const obs=new ResizeObserver(()=>{
+      w=canvas.offsetWidth;h=canvas.offsetHeight;
+      if(w>0&&h>0){canvas.width=w;canvas.height=h;cols=Math.floor(w/fs);drops=Array.from({length:cols},()=>-Math.floor(Math.random()*40));}
+    });
+    obs.observe(canvas);
+    return()=>{cancelAnimationFrame(raf);obs.disconnect();};
+  }, []);
+  return <canvas ref={canvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:opacity,pointerEvents:'none',display:'block'}}/>;
+}
+
+/* ── Hex particle defs ── */
+const HEX_DEFS=[
+  {x:8,y:18,s:17,d:5.2,dl:0},{x:88,y:12,s:13,d:4.8,dl:1.2},{x:15,y:72,s:21,d:6.1,dl:.5},
+  {x:82,y:68,s:15,d:5.5,dl:1.8},{x:46,y:7,s:11,d:4.2,dl:.8},{x:55,y:88,s:19,d:6.5,dl:2.1},
+  {x:28,y:42,s:12,d:5.8,dl:1.5},{x:72,y:38,s:16,d:4.5,dl:.3},{x:3,y:55,s:14,d:7,dl:2.5},{x:94,y:45,s:17,d:5.3,dl:1},
+];
+
+/* ── Shield + circuit icon ── */
+function ShieldIcon({ size = 28 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 28 32" fill="none">
+      <path d="M14 1.5L25.5 6.5V16C25.5 22.3 20.4 27.9 14 30C7.6 27.9 2.5 22.3 2.5 16V6.5L14 1.5Z"
+        stroke="#00D4FF" strokeWidth="1.4" fill="rgba(0,212,255,0.06)"/>
+      <line x1="9" y1="13" x2="19" y2="13" stroke="#00D4FF" strokeWidth="0.9" opacity="0.5"/>
+      <line x1="14" y1="8"  x2="14" y2="22" stroke="#00D4FF" strokeWidth="0.9" opacity="0.5"/>
+      <line x1="9"  y1="13" x2="9"  y2="17" stroke="#00D4FF" strokeWidth="0.9" opacity="0.4"/>
+      <line x1="19" y1="13" x2="19" y2="17" stroke="#00D4FF" strokeWidth="0.9" opacity="0.4"/>
+      <circle cx="14" cy="8"  r="1.7" fill="#00D4FF"/>
+      <circle cx="9"  cy="13" r="1.4" fill="#00D4FF" opacity="0.7"/>
+      <circle cx="19" cy="13" r="1.4" fill="#00D4FF" opacity="0.7"/>
+      <circle cx="9"  cy="17" r="1.1" fill="#00D4FF" opacity="0.4"/>
+      <circle cx="19" cy="17" r="1.1" fill="#00D4FF" opacity="0.4"/>
+      <circle cx="14" cy="22" r="1.4" fill="#00D4FF" opacity="0.55"/>
+    </svg>
+  );
+}
+
+/* ── TopNav ── */
+function NavBtn({ children, onClick, active, primary }) {
+  const [h,setH] = useState(false);
+  const col = primary || active ? '#00D4FF' : '#4A5568';
+  const bg  = (primary || active) ? (h ? 'rgba(0,212,255,.14)' : 'rgba(0,212,255,.07)') : (h ? 'rgba(255,255,255,.04)' : 'transparent');
+  const bd  = (primary || active) ? 'rgba(0,212,255,.2)' : 'rgba(255,255,255,.08)';
+  return (
+    <button onClick={onClick} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{ background:bg, border:`1px solid ${bd}`, borderRadius:'7px', padding:'5px 12px', color:col, fontSize:'11px', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', gap:'5px', fontFamily:'Inter,sans-serif', transition:'all .15s', whiteSpace:'nowrap' }}>
+      {children}
+    </button>
+  );
+}
+
+function NavIco({ children, title, onClick }) {
+  const [h,setH] = useState(false);
+  return (
+    <button title={title} onClick={onClick} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{ background:'none', border:`1px solid ${h?'rgba(255,255,255,.12)':'rgba(255,255,255,.07)'}`, borderRadius:'7px', padding:'5px 7px', color:h?'#8892A4':'#2D3748', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', transition:'all .15s' }}>
+      {children}
+    </button>
+  );
+}
+
+function TopNav({ onNewChat, cvePanelOpen, onToggleCVE, onSettings }) {
+  return (
+    <div style={{ height:56, background:'#0D1117', borderBottom:'1px solid rgba(255,255,255,.05)', display:'flex', alignItems:'center', padding:'0 20px', gap:'12px', flexShrink:0, zIndex:10, position:'relative' }}>
+      {/* Logo */}
+      <div style={{ display:'flex', alignItems:'center', gap:'10px', minWidth:220 }}>
+        <ShieldIcon size={26}/>
+        <div>
+          <div className="glitch" style={{ fontSize:'15px', fontWeight:800, color:'#E8EDF5', letterSpacing:'-0.02em', lineHeight:1 }}>SecureLLM</div>
+          <div style={{ fontSize:'9px', color:'#2D3748', letterSpacing:'0.13em', textTransform:'uppercase', marginTop:'1px' }}>Threat Intelligence Assistant</div>
+        </div>
+      </div>
+
+      {/* Center status pill */}
+      <div style={{ flex:1, display:'flex', justifyContent:'center' }}>
+        <div style={{ display:'inline-flex', alignItems:'center', gap:'8px', padding:'5px 14px', background:'rgba(74,222,128,.05)', border:'1px solid rgba(74,222,128,.14)', borderRadius:'100px', fontSize:'12px', color:'#4ADE80' }}>
+          <span style={{ position:'relative', width:7, height:7, display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}><span className="radar-ping"/><span className="radar-ping2"/><span style={{ width:7, height:7, borderRadius:'50%', background:'#4ADE80', display:'block', position:'relative', zIndex:1 }}/></span>
+          <span style={{ fontWeight:600 }}>Model Ready</span>
+          <span style={{ color:'rgba(74,222,128,.3)', margin:'0 1px' }}>•</span>
+          <span style={{ color:'rgba(74,222,128,.45)', fontFamily:"'JetBrains Mono',monospace", fontSize:'11px' }}>RTX 4050</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display:'flex', alignItems:'center', gap:'6px', minWidth:220, justifyContent:'flex-end' }}>
+        <NavBtn onClick={onToggleCVE} active={cvePanelOpen}>
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1.5" width="10" height="9" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1"/><path d="M7.5 1.5v9" stroke="currentColor" strokeWidth="1" opacity=".5"/></svg>
+          CVE Panel
+        </NavBtn>
+        <NavBtn onClick={onNewChat} primary>
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+          New Chat
+        </NavBtn>
+        <NavIco title="Settings" onClick={onSettings}>
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+            <circle cx="7.5" cy="7.5" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.1"/>
+            <path d="M7.5 1.5v1.1M7.5 12.4v1.1M13.5 7.5h-1.1M2.6 7.5H1.5M11.7 3.3l-.8.8M4.1 10.9l-.8.8M11.7 11.7l-.8-.8M4.1 4.1l-.8-.8" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/>
+          </svg>
+        </NavIco>
+        <NavIco title="GitHub">
+          <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor">
+            <path d="M7.5 0C3.36 0 0 3.36 0 7.5c0 3.31 2.15 6.12 5.13 7.11.37.07.51-.16.51-.36 0-.18-.01-.77-.01-1.4-1.88.35-2.37-.46-2.52-.88-.08-.21-.45-.88-.77-1.06-.26-.14-.63-.49-.01-.5.59-.01 1.01.55 1.15.77.68 1.14 1.76.82 2.19.62.07-.49.26-.82.47-1.01-1.67-.19-3.41-.84-3.41-3.71 0-.82.29-1.49.77-2.01-.07-.19-.34-.95.07-1.98 0 0 .63-.2 2.06.77.6-.17 1.24-.26 1.88-.26.64 0 1.28.09 1.88.26 1.43-.97 2.06-.77 2.06-.77.41 1.03.15 1.79.07 1.98.48.52.77 1.18.77 2.01 0 2.88-1.75 3.52-3.42 3.71.27.23.51.68.51 1.39 0 1-.01 1.81-.01 2.06 0 .2.14.43.51.36C12.85 13.62 15 10.81 15 7.5 15 3.36 11.64 0 7.5 0z"/>
+          </svg>
+        </NavIco>
+      </div>
+    </div>
+  );
+}
+
+/* ── Empty state ── */
+function EmptyState({ onSuggest }) {
+  const chips = ['Explain Log4Shell','What is CVE-2024-3400?','Compare HIGH vs CRITICAL severity','Latest Apache vulnerabilities'];
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', height:'100%', gap:'20px', padding:'40px 24px', userSelect:'none', position:'relative', overflow:'hidden' }}>
+      {HEX_DEFS.map((p,i)=>(
+        <div key={i} className="hex-p" style={{ left:`${p.x}%`, top:`${p.y}%`, '--d':`${p.d}s`, '--dl':`${p.dl}s` }}>
+          <svg width={p.s} height={p.s} viewBox="0 0 22 22" fill="none"><path d="M11 1L20.5 5.5V16.5L11 21L1.5 16.5V5.5L11 1Z" stroke="#00D4FF" strokeWidth="1" fill="rgba(0,212,255,0.04)"/></svg>
+        </div>
+      ))}
+      <div className="shield-glow" style={{ width:82, height:82, borderRadius:'20px', background:'radial-gradient(circle at 50% 40%,rgba(0,212,255,.1),rgba(0,212,255,.02))', border:'1px solid rgba(0,212,255,.17)', display:'flex', alignItems:'center', justifyContent:'center', position:'relative', zIndex:1 }}>
+        <ShieldIcon size={42}/>
+      </div>
+      <div style={{ textAlign:'center', position:'relative', zIndex:1 }}>
+        <h2 style={{ fontSize:'22px', fontWeight:800, color:'#E8EDF5', margin:'0 0 8px', letterSpacing:'-0.02em', textWrap:'pretty' }}>
+          SecureLLM Threat Intelligence
+        </h2>
+        <p style={{ fontSize:'13px', color:'#374151', margin:0, lineHeight:1.5 }}>
+          Powered by Llama-3.1-8B fine-tuned on{' '}
+          <span style={{ color:'#00D4FF', fontFamily:"'JetBrains Mono',monospace" }}>9,992</span> CVE records
+        </p>
+      </div>
+      <div style={{ display:'flex', flexWrap:'wrap', gap:'8px', justifyContent:'center', maxWidth:520, position:'relative', zIndex:1 }}>
+        {chips.map((c,i) => (
+          <button key={i} onClick={()=>onSuggest(c)} className="chip"
+            style={{ padding:'8px 16px', background:'rgba(255,255,255,.025)', border:'1px solid rgba(255,255,255,.07)', borderRadius:'100px', color:'#4A5568', fontSize:'12px', cursor:'pointer', fontFamily:'Inter,sans-serif', transition:'all .2s', whiteSpace:'nowrap' }}>
+            {c}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── Typing indicator ── */
+function TypingIndicator() {
+  return (
+    <div className="msg-in" style={{ display:'flex', justifyContent:'flex-start', marginBottom:14, padding:'0 24px' }}>
+      <div style={{ background:'#111827', border:'1px solid rgba(255,255,255,.06)', borderLeft:'3px solid #00D4FF', borderRadius:'4px 14px 14px 14px', padding:'13px 18px', display:'flex', alignItems:'center', gap:'12px' }}>
+        <div style={{ display:'flex', gap:'5px', alignItems:'center' }}>
+          {[0,1,2].map(i => <span key={i} className="dot" style={{ width:6, height:6, borderRadius:'50%', background:'#00D4FF', display:'inline-block' }}/>)}
+        </div>
+        <span style={{ fontSize:'11px', color:'#374151', fontFamily:"'JetBrains Mono',monospace", whiteSpace:'nowrap' }}>
+          Analyzing with Llama-3.1-8B…
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ── Feedback button ── */
+function FBtn({ icon, active, onClick, label }) {
+  const [h,setH] = useState(false);
+  const palette = { copy:['#00D4FF','rgba(0,212,255,.1)','rgba(0,212,255,.25)'], up:['#4ADE80','rgba(74,222,128,.1)','rgba(74,222,128,.25)'], down:['#FF4444','rgba(255,68,68,.1)','rgba(255,68,68,.25)'] };
+  const [c,bg,bd] = palette[icon];
+  return (
+    <button onClick={onClick} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{ background:active?bg:'none', border:`1px solid ${active?bd:'rgba(255,255,255,.07)'}`, borderRadius:'6px', padding:label?'3px 8px':'4px 6px', color:active?c:h?'#8892A4':'#374151', fontSize:'10px', cursor:'pointer', display:'flex', alignItems:'center', gap:'4px', transition:'all .14s', fontFamily:'Inter,sans-serif' }}>
+      {icon==='copy' && (
+        <>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <rect x="3.5" y="3.5" width="5.5" height="5.5" rx="1" fill="none" stroke="currentColor" strokeWidth="1"/>
+            <path d="M6.5 3.5V2.5A1 1 0 005.5 1.5h-3a1 1 0 00-1 1v3a1 1 0 001 1H3.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+          </svg>
+          {label}
+        </>
+      )}
+      {icon==='up' && <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M3.5 9.5V5.5L5.5 1.5l.7.35V4.5H9.8l-.4 5H3.5zM1 5.5h2.5v4H1V5.5z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round"/></svg>}
+      {icon==='down' && <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M7.5 1.5V5.5L5.5 9.5l-.7-.35V6.5H1.2l.4-5H7.5zM10 5.5H7.5v-4H10v4z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round"/></svg>}
+    </button>
+  );
+}
+
+/* ── Message bubble ── */
+function fmtTime(d){ return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false}); }
+
+function Message({ msg, onCopy, feedback, onFeedback, copiedId, compact=false, streamingId=null }) {
+  const [scanning, setScanning] = useState(msg.role === 'ai');
+  useEffect(() => {
+    if (msg.role === 'ai') { const t = setTimeout(() => setScanning(false), 760); return () => clearTimeout(t); }
+  }, []);
+  if (msg.role === 'user') return (
+    <div className="msg-in" style={{ display:'flex', justifyContent:'flex-end', marginBottom:14, padding:'0 24px' }}>
+      <div style={{ maxWidth:'68%', background:'#1A2540', border:'1px solid rgba(255,255,255,.06)', borderRadius:'16px 16px 4px 16px', padding:compact?'7px 9px':'11px 15px' }}>
+        <p style={{ color:'#E8EDF5', margin:0, lineHeight:1.65, fontSize:'14px', whiteSpace:'pre-wrap' }}>{msg.content}</p>
+        <div style={{ fontSize:'10px', color:'#2D3748', marginTop:6, textAlign:'right' }}>{fmtTime(msg.ts)}</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="msg-in" style={{ display:'flex', justifyContent:'flex-start', marginBottom:14, padding:'0 24px' }}>
+      <div style={{ maxWidth:'85%', background:'#111827', border:'1px solid rgba(255,255,255,.05)', borderLeft:'3px solid #00D4FF', borderRadius:'4px 16px 16px 16px', padding:compact?'8px 10px':'13px 16px', position:'relative', overflow:'hidden' }}>
+        {scanning && <div className="scan-line"/>}
+        {/* AI header */}
+        <div style={{ display:'flex', alignItems:'center', gap:'8px', marginBottom:10 }}>
+          <div style={{ width:22, height:22, borderRadius:'6px', background:'rgba(0,212,255,.1)', border:'1px solid rgba(0,212,255,.2)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+              <path d="M5.5 1L9.5 3V8L5.5 10L1.5 8V3L5.5 1Z" fill="none" stroke="#00D4FF" strokeWidth="1"/>
+            </svg>
+          </div>
+          <span style={{ fontSize:'10px', fontWeight:700, color:'#00D4FF', letterSpacing:'0.08em', textTransform:'uppercase' }}>SecureLLM</span>
+          {msg.isDemo && (
+            <span style={{ fontSize:'9px', color:'#374151', background:'rgba(255,255,255,.03)', border:'1px solid rgba(255,255,255,.07)', borderRadius:'4px', padding:'1px 5px' }}>demo</span>
+          )}
+          <span style={{ fontSize:'10px', color:'#2D3748', marginLeft:'auto' }}>{fmtTime(msg.ts)}</span>
+        </div>
+
+        {/* Markdown content */}
+        <div style={{ fontSize:'14px' }}>{renderMarkdown(msg.content)}{streamingId===msg.id&&<span className="stream-cursor">▌</span>}</div>
+
+        {/* Footer */}
+        <div style={{ display:'flex', alignItems:'center', gap:'6px', marginTop:12, paddingTop:10, borderTop:'1px solid rgba(255,255,255,.04)', flexWrap:'wrap' }}>
+          {msg.latency != null && (
+            <span style={{ fontSize:'10px', color:'#2D3748', fontFamily:"'JetBrains Mono',monospace", flex:1, minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              Generated in {(msg.latency/1000).toFixed(1)}s &nbsp;•&nbsp; {msg.tokens.toLocaleString()} tokens
+            </span>
+          )}
+          <div style={{ display:'flex', gap:'4px', flexShrink:0 }}>
+            <FBtn icon="copy" active={copiedId===msg.id} onClick={()=>onCopy(msg.id,msg.content)} label={copiedId===msg.id?'✓ Copied':'Copy'}/>
+            <FBtn icon="up"   active={feedback[msg.id]==='up'}   onClick={()=>onFeedback(msg.id,'up')}/>
+            <FBtn icon="down" active={feedback[msg.id]==='down'} onClick={()=>onFeedback(msg.id,'down')}/>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Input area ── */
+function InputArea({ value, onChange, onSend, temperature, setTemperature, maxTokens, setMaxTokens, streamEnabled, setStreamEnabled, disabled }) {
+  const [focused, setFocused] = useState(false);
+  const taRef = useRef(null);
+
+  const handleChange = e => {
+    onChange(e.target.value);
+    const ta = taRef.current;
+    if (ta) { ta.style.height='auto'; ta.style.height = Math.min(ta.scrollHeight, 180)+'px'; }
+  };
+  const handleKey = e => {
+    if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); if (value.trim() && !disabled) onSend(); }
+  };
+
+  return (
+    <div style={{ padding:'13px 24px 18px', background:'#0A0E1A', borderTop:'1px solid rgba(255,255,255,.04)', flexShrink:0 }}>
+      {/* Gradient-border wrapper */}
+      <div className={`input-border ${focused ? 'on' : ''}`}>
+        <div style={{ background:'#0D1117', borderRadius:'12px', padding:'10px 12px', display:'flex', gap:'10px', alignItems:'flex-end' }}>
+          {/* Attachment (disabled) */}
+          <button style={{ background:'none', border:'none', cursor:'not-allowed', color:'#1E2640', padding:'2px', flexShrink:0, display:'flex', alignItems:'center', marginBottom:'1px' }} title="Attachments (coming soon)">
+            <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+              <path d="M14.5 7.5L8 14C6.3 15.7 3.7 15.7 2 14 .3 12.3.3 9.7 2 8l7-7C10.1.9 11.7.9 12.8 2 13.9 3.1 13.9 4.7 12.8 5.8L6 12.6C5.5 13.1 4.7 13.1 4.2 12.6 3.7 12.1 3.7 11.3 4.2 10.8L10.8 4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+            </svg>
+          </button>
+
+          <textarea ref={taRef} value={value} onChange={handleChange} onKeyDown={handleKey}
+            onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
+            disabled={disabled} rows={1}
+            placeholder="Ask about any CVE, threat, or vulnerability…"
+            style={{ flex:1, background:'none', border:'none', outline:'none', color:'#E8EDF5', fontSize:'14px', lineHeight:1.6, resize:'none', fontFamily:'Inter,sans-serif', minHeight:'22px', maxHeight:'180px', overflowY:'auto' }}
+          />
+
+          {/* Send button */}
+          <button onClick={onSend} disabled={!value.trim()||disabled}
+            style={{ width:36, height:36, borderRadius:'9px', background:value.trim()&&!disabled?'#00D4FF':'rgba(0,212,255,.08)', border:'none', cursor:value.trim()&&!disabled?'pointer':'not-allowed', color:value.trim()&&!disabled?'#0A0E1A':'#2D3748', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .18s', transform:value.trim()&&!disabled?'scale(1)':'scale(.94)' }}>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+              <path d="M1.5 13L13.5 7.5 1.5 2v4.2l8.3 1.3L1.5 8.8V13z" fill="currentColor"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Parameter controls */}
+      <div style={{ display:'flex', alignItems:'center', gap:'12px', marginTop:'9px', padding:'0 2px', flexWrap:'wrap' }}>
+        <PLabel>Temp</PLabel>
+        <input type="range" min=".1" max="1" step=".1" value={temperature} onChange={e=>setTemperature(parseFloat(e.target.value))} className="slider" style={{ width:72 }}/>
+        <span style={{ fontSize:'10px', color:'#8892A4', fontFamily:"'JetBrains Mono',monospace", minWidth:22 }}>{temperature.toFixed(1)}</span>
+
+        <Divider/>
+        <PLabel>Tokens</PLabel>
+        <select value={maxTokens} onChange={e=>setMaxTokens(parseInt(e.target.value))}
+          style={{ background:'rgba(255,255,255,.04)', border:'1px solid rgba(255,255,255,.08)', borderRadius:'5px', color:'#8892A4', fontSize:'11px', padding:'2px 6px', fontFamily:"'JetBrains Mono',monospace", cursor:'pointer', outline:'none' }}>
+          {[100,200,500,1000].map(n=><option key={n} value={n}>{n}</option>)}
+        </select>
+
+        <Divider/>
+        <PLabel>Stream</PLabel>
+        <Toggle on={streamEnabled} onToggle={()=>setStreamEnabled(v=>!v)}/>
+
+        <span style={{ fontSize:'9px', color:'#1E2640', marginLeft:'auto', whiteSpace:'nowrap' }}>⏎ Send &nbsp;·&nbsp; ⇧⏎ Newline</span>
+      </div>
+    </div>
+  );
+}
+
+function PLabel({ children }) {
+  return <span style={{ fontSize:'9px', color:'#374151', fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', whiteSpace:'nowrap' }}>{children}</span>;
+}
+function Divider() {
+  return <span style={{ width:1, height:12, background:'rgba(255,255,255,.06)', display:'inline-block', flexShrink:0 }}/>;
+}
+function Toggle({ on, onToggle }) {
+  return (
+    <div onClick={onToggle} style={{ width:30, height:17, borderRadius:'8.5px', background:on?'rgba(0,212,255,.25)':'rgba(255,255,255,.07)', border:`1px solid ${on?'rgba(0,212,255,.45)':'rgba(255,255,255,.1)'}`, position:'relative', cursor:'pointer', transition:'all .2s', flexShrink:0 }}>
+      <div style={{ position:'absolute', top:'2px', left:on?'14px':'2px', width:11, height:11, borderRadius:'50%', background:on?'#00D4FF':'#374151', transition:'all .2s' }}/>
+    </div>
+  );
+}
+
+/* ── Settings modal ── */
+function SettingsModal({ onClose }) {
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,.78)', zIndex:1001, display:'flex', alignItems:'center', justifyContent:'center', backdropFilter:'blur(4px)' }}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:'#111827', border:'1px solid rgba(255,255,255,.1)', borderRadius:'14px', padding:'28px', width:'420px', maxHeight:'80vh', overflowY:'auto', boxShadow:'0 24px 80px rgba(0,0,0,.6)' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'22px' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'8px' }}>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" fill="none" stroke="#00D4FF" strokeWidth="1.1"/><path d="M8 1.5v1.1M8 13.4v1.1M14.5 8h-1.1M2.6 8H1.5M12.4 3.6l-.8.8M4.4 11.6l-.8.8M12.4 12.4l-.8-.8M4.4 4.4l-.8-.8" stroke="#00D4FF" strokeWidth="1.1" strokeLinecap="round"/></svg>
+            <span style={{ fontSize:'14px', fontWeight:700, color:'#E8EDF5' }}>Settings</span>
+          </div>
+          <button onClick={onClose} style={{ background:'rgba(255,255,255,.06)', border:'1px solid rgba(255,255,255,.1)', borderRadius:'6px', width:28, height:28, cursor:'pointer', color:'#8892A4', fontSize:'18px', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'inherit' }}>×</button>
+        </div>
+        <div style={{ marginBottom:'20px' }}>
+          <div style={{ fontSize:'10px', color:'#00D4FF', letterSpacing:'.12em', textTransform:'uppercase', fontWeight:700, marginBottom:'9px', fontFamily:"'JetBrains Mono',monospace" }}>API Endpoint</div>
+          <div style={{ background:'rgba(0,0,0,.3)', border:'1px solid rgba(255,255,255,.07)', borderRadius:'6px', padding:'9px 13px', fontFamily:"'JetBrains Mono',monospace", fontSize:'12px', color:'#8892A4' }}>http://localhost:8000/query</div>
+          <div style={{ fontSize:'11px', color:'#2D3748', marginTop:'5px', fontFamily:"'JetBrains Mono',monospace" }}>POST · message · history · max_new_tokens · temperature · top_p · stream</div>
+        </div>
+        <div style={{ marginBottom:'20px' }}>
+          <div style={{ fontSize:'10px', color:'#00D4FF', letterSpacing:'.12em', textTransform:'uppercase', fontWeight:700, marginBottom:'9px', fontFamily:"'JetBrains Mono',monospace" }}>Model Configuration</div>
+          <div style={{ display:'flex', flexDirection:'column', gap:'1px' }}>
+            {[['Model','Meta-Llama-3.1-8B-Instruct'],['Fine-tuning','LoRA (4-bit NF4)'],['Training data','9,992 NVD CVE records'],['Device','RTX 4050 · CUDA FP16'],['Context window','4,096 tokens'],['Generation','~60–130s per response']].map(([k,v])=>(
+              <div key={k} style={{ display:'flex', justifyContent:'space-between', padding:'7px 10px', background:'rgba(255,255,255,.025)', borderRadius:'4px', gap:'16px' }}>
+                <span style={{ fontSize:'11px', color:'#374151', fontFamily:"'JetBrains Mono',monospace", whiteSpace:'nowrap' }}>{k}</span>
+                <span style={{ fontSize:'11px', color:'#8892A4', textAlign:'right' }}>{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ padding:'14px', background:'rgba(0,212,255,.04)', border:'1px solid rgba(0,212,255,.1)', borderRadius:'8px' }}>
+          <div style={{ fontSize:'10px', color:'#00D4FF', fontWeight:700, marginBottom:'6px', fontFamily:"'JetBrains Mono',monospace", letterSpacing:'.08em' }}>ABOUT</div>
+          <p style={{ fontSize:'12px', color:'#374151', lineHeight:1.65 }}>SecureLLM is a local threat intelligence assistant. All processing is done on your machine — no data leaves your environment.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── App ── */
+function App() {
+  const [messages,   setMessages]   = useState([]);
+  const [activeConv, setActiveConv] = useState(null);
+  const [input,      setInput]      = useState('');
+  const [typing,     setTyping]     = useState(false);
+  const [error,      setError]      = useState(null);
+  const [cveData,    setCveData]    = useState(null);
+  const [cvePanelOpen, setCvePanelOpen] = useState(true);
+  const [temp,       setTemp]       = useState(0.2);
+  const [maxTok,     setMaxTok]     = useState(500);
+  const [stream,     setStream]     = useState(false);
+  const [copiedId,   setCopiedId]   = useState(null);
+  const [feedback,   setFeedback]   = useState({});
+  const msgsRef = useRef(null);
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [streamingId, setStreamingId] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+
+  useEffect(() => {
+    if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
+  }, [messages, typing]);
+
+  const send = async (text) => {
+    const content = (text || input).trim();
+    if (!content || typing) return;
+
+    const userMsg = { id: Date.now()+'', role:'user', content, ts: new Date() };
+    setMessages(prev => [...prev, userMsg]);
+    setInput('');
+    setTyping(true);
+    setError(null);
+
+    // Reset textarea height
+    const ta = document.querySelector('textarea');
+    if (ta) ta.style.height = 'auto';
+
+    const history = messages.map(m => ({ role: m.role==='ai'?'assistant':'user', content: m.content }));
+    let resp = null, isDemo = false;
+
+    try {
+      const res = await fetch('http://localhost:8000/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message:content, history, max_new_tokens:maxTok, temperature:temp, top_p:0.9, stream:false }),
+        signal: AbortSignal.timeout(180000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      resp = await res.json();
+    } catch {
+      isDemo = true;
+      const demo = getDemoResponse(content);
+      await new Promise(r => setTimeout(r, 1300 + Math.random()*1400));
+      resp = { response: demo.response, latency_ms: demo.latency_ms };
+      setError('API unreachable at localhost:8000 — showing demo response');
+    }
+
+    setTyping(false);
+    const msgId = (Date.now()+1)+'';
+    if (stream) {
+      const aiMsg = { id:msgId, role:'ai', content:'', ts:new Date(), latency:null, tokens:0, isDemo };
+      setMessages(prev => [...prev, aiMsg]);
+      setStreamingId(msgId);
+      const words = resp.response.split(' '); let built = '';
+      for (let i=0; i<words.length; i++) {
+        built += (i>0?' ':'')+words[i];
+        setMessages(prev => prev.map(m => m.id===msgId ? {...m, content:built} : m));
+        await new Promise(r => setTimeout(r, 20+Math.random()*12));
+      }
+      setStreamingId(null);
+      setMessages(prev => prev.map(m => m.id===msgId ? {...m, latency:resp.latency_ms, tokens:estimateTokens(resp.response)} : m));
+    } else {
+      setMessages(prev => [...prev, { id:msgId, role:'ai', content:resp.response, ts:new Date(), latency:resp.latency_ms, tokens:estimateTokens(resp.response), isDemo }]);
+    }
+
+    // Auto-populate CVE panel
+    const cves = extractCVEs(resp.response);
+    if (cves.length && CVE_DATABASE[cves[0]]) {
+      setCveData(CVE_DATABASE[cves[0]]);
+      setCvePanelOpen(true);
+    }
+  };
+
+  const handleCopy = (id, text) => {
+    navigator.clipboard.writeText(text).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    });
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const clearAll = () => { setMessages([]); setCveData(null); setError(null); setActiveConv(null); };
+
+  return (
+    <div style={{ height:'100vh', display:'flex', flexDirection:'column', background:'#0A0E1A', fontFamily:'Inter,sans-serif', color:'#E8EDF5', overflow:'hidden' }}>
+
+      <TopNav onNewChat={clearAll} cvePanelOpen={cvePanelOpen} onToggleCVE={()=>setCvePanelOpen(v=>!v)} onSettings={()=>setShowSettings(true)}/>
+
+      {/* Error banner */}
+      {error && (
+        <div className="err-banner" style={{ background:'rgba(255,68,68,.07)', borderBottom:'1px solid rgba(255,68,68,.17)', padding:'7px 24px', display:'flex', alignItems:'center', gap:'9px', color:'#FF7070', fontSize:'12px', flexShrink:0 }}>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="6.5" r="5.5" fill="none" stroke="#FF4444" strokeWidth="1.1"/><path d="M6.5 3.5v3M6.5 9v.5" stroke="#FF4444" strokeWidth="1.3" strokeLinecap="round"/></svg>
+          {error}
+          <button onClick={()=>setError(null)} style={{ marginLeft:'auto', background:'none', border:'none', color:'#FF4444', cursor:'pointer', fontSize:'16px', lineHeight:1, padding:'0 2px', fontFamily:'inherit' }}>×</button>
+        </div>
+      )}
+
+      {/* Three-panel layout */}
+      <div style={{ flex:1, display:'flex', overflow:'hidden' }}>
+
+        {/* Left: Sidebar */}
+        <Sidebar
+          activeConvId={activeConv}
+          onSelectConv={id => { setActiveConv(id); setMessages([]); setCveData(null); }}
+          onNewChat={clearAll}
+        />
+
+        {/* Center: Chat */}
+        <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', minWidth:0, position:'relative' }}>
+          {tweaks.showRain && <MatrixRain opacity={tweaks.rainOpacity}/>}
+          <style dangerouslySetInnerHTML={{__html: `.scan-line{background:linear-gradient(90deg,transparent,${tweaks.accentColor} 20%,${tweaks.accentColor} 80%,transparent)!important}.dot{background:${tweaks.accentColor}!important}.cve-trace{background:linear-gradient(180deg,transparent,${tweaks.accentColor},transparent)!important}`}}/>
+          <div ref={msgsRef} className="chat-bg" style={{ flex:1, overflowY:'auto', paddingTop:20, position:'relative', zIndex:1 }}>
+            {messages.length===0 && !typing
+              ? <EmptyState onSuggest={send}/>
+              : <>
+                  {messages.map(m => (
+                    <Message key={m.id} msg={m} onCopy={handleCopy}
+                      feedback={feedback} onFeedback={(id,t)=>setFeedback(p=>({...p,[id]:p[id]===t?null:t}))}
+                      copiedId={copiedId} compact={tweaks.compact} streamingId={streamingId}/>
+                  ))}
+                  {typing && <TypingIndicator/>}
+                  <div style={{ height:16 }}/>
+                </>
+            }
+          </div>
+          <InputArea value={input} onChange={setInput} onSend={send}
+            temperature={temp} setTemperature={setTemp}
+            maxTokens={maxTok} setMaxTokens={setMaxTok}
+            streamEnabled={stream} setStreamEnabled={setStream}
+            disabled={typing}/>
+        </div>
+
+        {/* Right: CVE Panel */}
+        <CVEPanel cveData={cveData} isCollapsed={!cvePanelOpen} onToggle={()=>setCvePanelOpen(false)}/>
+      </div>
+      <TweaksPanel>
+        <TweakSection label="Visual"/>
+        <TweakColor label="Accent color" value={tweaks.accentColor}
+          options={['#00D4FF','#7B2FFF','#4ADE80']}
+          onChange={v=>setTweak('accentColor',v)}/>
+        <TweakSlider label="Rain opacity" value={tweaks.rainOpacity} min={0} max={0.08} step={0.004}
+          onChange={v=>setTweak('rainOpacity',v)}/>
+        <TweakToggle label="Show rain" value={tweaks.showRain}
+          onChange={v=>setTweak('showRain',v)}/>
+        <TweakToggle label="Compact messages" value={tweaks.compact}
+          onChange={v=>setTweak('compact',v)}/>
+      </TweaksPanel>
+      {showSettings && <SettingsModal onClose={()=>setShowSettings(false)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

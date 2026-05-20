@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SecureLLM — Select Interface</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#07080F;color:#E8EDF5;font-family:'Inter',sans-serif;overflow:hidden}
+
+/* Background particles */
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(0,212,255,.06),transparent),radial-gradient(ellipse 60% 40% at 80% 110%,rgba(204,48,16,.07),transparent);pointer-events:none}
+
+/* Scanlines (faint) */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 4px);pointer-events:none;z-index:9999}
+
+main{
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:48px;
+  padding:40px 24px;
+}
+
+/* Header */
+.logo{display:flex;flex-direction:column;align-items:center;gap:10px}
+.logo-row{display:flex;align-items:center;gap:14px}
+.wordmark{font-size:32px;font-weight:800;color:#E8EDF5;letter-spacing:-.02em}
+.tagline{font-size:12px;color:#4A5568;letter-spacing:.14em;text-transform:uppercase;font-family:'JetBrains Mono',monospace}
+
+/* Cards grid */
+.cards{display:flex;gap:24px;align-items:stretch}
+
+.card{
+  width:340px;
+  background:rgba(255,255,255,.025);
+  border:1px solid rgba(255,255,255,.07);
+  border-radius:16px;
+  padding:28px;
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+  cursor:pointer;
+  text-decoration:none;
+  color:inherit;
+  position:relative;
+  overflow:hidden;
+  transition:transform .2s ease, border-color .2s, background .2s;
+}
+.card:hover{transform:translateY(-3px)}
+.card.cyan:hover{border-color:rgba(0,212,255,.35);background:rgba(0,212,255,.04)}
+.card.red:hover{border-color:rgba(204,48,16,.35);background:rgba(204,48,16,.04)}
+
+/* Glow on hover */
+.card.cyan::before{content:'';position:absolute;inset:-1px;border-radius:17px;background:radial-gradient(ellipse at 50% 0%,rgba(0,212,255,.12),transparent 70%);opacity:0;transition:opacity .3s;pointer-events:none}
+.card.red::before{content:'';position:absolute;inset:-1px;border-radius:17px;background:radial-gradient(ellipse at 50% 0%,rgba(204,48,16,.14),transparent 70%);opacity:0;transition:opacity .3s;pointer-events:none}
+.card:hover::before{opacity:1}
+
+/* Card accent bar */
+.card.cyan::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#00D4FF,transparent);opacity:.5}
+.card.red::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#CC3010,transparent);opacity:.5}
+
+.card-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:100px;
+  font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;
+  letter-spacing:.06em;text-transform:uppercase;width:fit-content;
+}
+.badge-cyan{color:#00D4FF;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.25)}
+.badge-red{color:#FF4422;background:rgba(204,48,16,.1);border:1px solid rgba(204,48,16,.3);border-radius:2px}
+
+.card-title{font-size:20px;font-weight:800;color:#E8EDF5;letter-spacing:-.01em}
+.card-sub{font-size:12px;color:#4A5568;line-height:1.6;font-family:'JetBrains Mono',monospace}
+
+/* Feature list */
+.features{display:flex;flex-direction:column;gap:7px;flex:1}
+.feat{display:flex;align-items:center;gap:9px;font-size:12px;color:#8892A4}
+.feat-dot-cyan{width:5px;height:5px;border-radius:50%;background:#00D4FF;flex-shrink:0}
+.feat-dot-red{width:5px;height:5px;border-radius:2px;background:#CC3010;flex-shrink:0}
+
+/* Open button */
+.open-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;
+  transition:all .2s;
+}
+.open-cyan{background:rgba(0,212,255,.12);border:1px solid rgba(0,212,255,.3);color:#00D4FF}
+.open-cyan:hover{background:rgba(0,212,255,.22);border-color:rgba(0,212,255,.6)}
+.open-red{background:rgba(204,48,16,.1);border:1px solid rgba(204,48,16,.3);color:#FF4422;border-radius:2px}
+.open-red:hover{background:rgba(204,48,16,.2);border-color:rgba(255,68,34,.55)}
+
+/* Previews (colour swatches) */
+.preview{border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.06);height:80px;position:relative;display:flex}
+.prev-cyan{background:linear-gradient(135deg,#0A0E1A 0%,#111827 50%,#0D1117 100%)}
+.prev-red{background:linear-gradient(135deg,#0D0906 0%,#140E09 50%,#0D0906 100%)}
+.prev-bar{position:absolute;bottom:0;left:0;right:0;height:3px}
+.prev-bar-cyan{background:linear-gradient(90deg,transparent,#00D4FF,transparent)}
+.prev-bar-red{background:linear-gradient(90deg,transparent,#CC3010,transparent)}
+.prev-dots{position:absolute;top:14px;left:14px;display:flex;gap:5px}
+.prev-dot{width:7px;height:7px;border-radius:50%}
+.prev-tag{position:absolute;top:14px;right:14px;font-size:9px;font-family:'JetBrains Mono',monospace;font-weight:700;padding:2px 7px}
+
+/* Mini file list */
+.file-list{padding:12px 16px;background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.05);border-radius:8px}
+.file-list-title{font-size:9px;color:#2D3748;text-transform:uppercase;letter-spacing:.12em;font-weight:700;font-family:'JetBrains Mono',monospace;margin-bottom:8px}
+.file-item{display:flex;align-items:center;gap:8px;font-size:11px;color:#4A5568;font-family:'JetBrains Mono',monospace;padding:2px 0}
+.file-icon{font-size:10px;opacity:.5}
+
+/* Status */
+.status-row{display:flex;align-items:center;gap:8px;font-size:11px;color:#4A5568;font-family:'JetBrains Mono',monospace}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#22DD55;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* Animations */
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.logo{animation:fadeUp .5s ease forwards}
+.cards{animation:fadeUp .6s .15s ease both}
+.bottom-bar{animation:fadeUp .5s .3s ease both}
+
+.bottom-bar{
+  display:flex;align-items:center;gap:16px;
+  font-size:10px;color:#2D3748;font-family:'JetBrains Mono',monospace;
+}
+.divider{width:1px;height:12px;background:rgba(255,255,255,.07)}
+</style>
+</head>
+<body>
+<main>
+
+  <!-- Header -->
+  <div class="logo">
+    <div class="logo-row">
+      <svg width="32" height="36" viewBox="0 0 28 32" fill="none">
+        <path d="M14 1.5L25.5 6.5V16C25.5 22.3 20.4 27.9 14 30C7.6 27.9 2.5 22.3 2.5 16V6.5L14 1.5Z" stroke="#E8EDF5" stroke-width="1.4" fill="rgba(255,255,255,0.04)"/>
+        <line x1="9" y1="13" x2="19" y2="13" stroke="#E8EDF5" stroke-width="0.9" opacity="0.4"/>
+        <line x1="14" y1="8" x2="14" y2="22" stroke="#E8EDF5" stroke-width="0.9" opacity="0.4"/>
+        <circle cx="14" cy="8" r="1.7" fill="#E8EDF5" opacity="0.7"/>
+        <circle cx="9" cy="13" r="1.4" fill="#E8EDF5" opacity="0.5"/>
+        <circle cx="19" cy="13" r="1.4" fill="#E8EDF5" opacity="0.5"/>
+        <circle cx="14" cy="22" r="1.4" fill="#E8EDF5" opacity="0.4"/>
+      </svg>
+      <span class="wordmark">SecureLLM</span>
+    </div>
+    <span class="tagline">Select your interface — Threat Intelligence Assistant</span>
+  </div>
+
+  <!-- Cards -->
+  <div class="cards">
+
+    <!-- V1: Cyan -->
+    <a href="SecureLLM.html" class="card cyan">
+      <div class="card-badge badge-cyan">
+        <span style="width:6px;height:6px;border-radius:50%;background:#00D4FF;display:inline-block"></span>
+        V1 · Cyber Navy
+      </div>
+
+      <!-- Mini preview -->
+      <div class="preview prev-cyan">
+        <div class="prev-dots">
+          <div class="prev-dot" style="background:#00D4FF;opacity:.8"></div>
+          <div class="prev-dot" style="background:rgba(0,212,255,.3)"></div>
+          <div class="prev-dot" style="background:rgba(0,212,255,.15)"></div>
+        </div>
+        <div class="prev-tag" style="color:#00D4FF;background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.2);border-radius:4px">
+          CRITICAL
+        </div>
+        <div class="prev-bar prev-bar-cyan"></div>
+      </div>
+
+      <div>
+        <div class="card-title">Cyber Navy</div>
+        <div class="card-sub" style="margin-top:4px">Electric cyan on deep navy — clean, modern FAANG-grade UI</div>
+      </div>
+
+      <div class="features">
+        <div class="feat"><span class="feat-dot-cyan"></span>Cyan accent with gradient-border input</div>
+        <div class="feat"><span class="feat-dot-cyan"></span>Circular CVSS gauge in right panel</div>
+        <div class="feat"><span class="feat-dot-cyan"></span>Matrix rain + radar ping + scan line</div>
+        <div class="feat"><span class="feat-dot-cyan"></span>Tweaks: accent color, rain, compact mode</div>
+      </div>
+
+      <div class="open-btn open-cyan">
+        Open V1
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </a>
+
+    <!-- V2: Red -->
+    <a href="SecureLLM v2.html" class="card red">
+      <div class="card-badge badge-red">
+        !! V2 · Cyberpunk Red
+      </div>
+
+      <!-- Mini preview -->
+      <div class="preview prev-red">
+        <div class="prev-dots" style="gap:4px">
+          <div style="width:22px;height:7px;background:rgba(204,48,16,.6);border-radius:1px"></div>
+          <div style="width:14px;height:7px;background:rgba(204,48,16,.3);border-radius:1px"></div>
+        </div>
+        <div class="prev-tag" style="color:#FF4422;background:rgba(204,48,16,.1);border:1px solid rgba(204,48,16,.25);border-radius:2px;font-size:8px">
+          !! CRITICAL !!
+        </div>
+        <div class="prev-bar prev-bar-red"></div>
+      </div>
+
+      <div>
+        <div class="card-title">Cyberpunk Red</div>
+        <div class="card-sub" style="margin-top:4px">Warm dark with red accent — hacker terminal aesthetic inspired by the reference design</div>
+      </div>
+
+      <div class="features">
+        <div class="feat"><span class="feat-dot-red"></span>3-row header with scanning progress bar</div>
+        <div class="feat"><span class="feat-dot-red"></span>CRT scanlines + binary rain + corner brackets</div>
+        <div class="feat"><span class="feat-dot-red"></span>ATTENTION warning triangle empty state</div>
+        <div class="feat"><span class="feat-dot-red"></span>Tweaks: primary color, scanlines, compact</div>
+      </div>
+
+      <div class="open-btn open-red">
+        Open V2
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="bottom-bar">
+    <div class="status-row">
+      <span class="status-dot"></span>
+      <span>Both interfaces connect to localhost:8000/query</span>
+    </div>
+    <div class="divider"></div>
+    <span>Llama-3.1-8B · LoRA · 9,992 CVE records</span>
+    <div class="divider"></div>
+    <span>React 18 · Babel · No bundler</span>
+  </div>
+
+</main>
+</body>
+</html>
